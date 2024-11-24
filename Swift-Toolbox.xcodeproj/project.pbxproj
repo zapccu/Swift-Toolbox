@@ -8,6 +8,7 @@
 
 /* Begin PBXFileReference section */
 		43123F662CF3298F009BFB34 /* DictionaryPath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryPath.swift; sourceTree = "<group>"; };
+		43B4D1AD2CF32F1900DBD934 /* ParameterSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParameterSet.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -15,6 +16,7 @@
 			isa = PBXGroup;
 			children = (
 				43123F662CF3298F009BFB34 /* DictionaryPath.swift */,
+				43B4D1AD2CF32F1900DBD934 /* ParameterSet.swift */,
 			);
 			sourceTree = "<group>";
 		};
