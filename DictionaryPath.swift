@@ -20,13 +20,13 @@ typealias DictPar = Dictionary<String,Any>
  *        "d:" 3
  *      ]
  *
- *    let x = myDict[path: "c.d"]!
- *    myDict[path: "c.d"] = 10
+ *    let x = myDict["c.d"]!
+ *    myDict["c.d"] = 10
  */
 
 extension Dictionary where Key == String, Value == Any {
 
-    // Check if path exists
+    /// Check if path exists
     func pathExists(_ path: String) -> Bool {
         let seg = path.components(separatedBy: ".")
         
@@ -47,34 +47,29 @@ extension Dictionary where Key == String, Value == Any {
         return false
     }
     
-    // Get or set value identified by path
-    subscript(path path: String) -> Any? {
+    /// Get or set value identified by path
+    subscript(_ path: String, _ defaultValue: Any? = nil) -> Any? {
         get {
             let seg = path.components(separatedBy: ".")
             
             // Prevent an empty key
             guard seg.count > 0 else { return nil }
             
+            if seg.count == 1 {
+                return self[seg[0], default: defaultValue!]
+            }
+
             if let element = self[seg[0]] {
                 if element is DictPar {
                     // Element is a dictionary
                     // Recursively call subscript with child dictionary and remanining path
                     let newDict = element as! DictPar
                     let newPath = seg.dropFirst().joined(separator: ".")
-                    return newDict[path: newPath]
-                }
-                else if seg.count == 1 {
-                    // Element is a value
-                    return element
-                }
-                else {
-                    return nil
+                    return newDict[newPath, defaultValue]
                 }
             }
-            else {
-                // Element has no value or doesn't exist
-                return nil
-            }
+            
+            return defaultValue
         }
         set {
             let seg = path.components(separatedBy: ".")
@@ -90,7 +85,7 @@ extension Dictionary where Key == String, Value == Any {
                 // Recursively call subscript assignment with remaining path
                 var dict: DictPar = self[seg[0]] == nil ? [:] : self[seg[0]] as! DictPar
                 let newPath = seg.dropFirst().joined(separator: ".")
-                dict[path: newPath] = newValue
+                dict[newPath] = newValue
                 self[seg[0]] = dict
             }
         }
