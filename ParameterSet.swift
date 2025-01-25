@@ -7,12 +7,49 @@
 //  Requires DictionaryPath
 //
 
+//
+// ParameterSet structure
+//
+// A ParameterSet is an array of 3 dictionaries which can be used to manage
+// application parameters. The dictionaries are of type <String, Any> / DictPar
+//
+//   .current - Dictionary with current parameter values. When a parameter
+//      value is changed in this dictionary, the old value is stored in
+//      dictionary .previous
+//
+//   .previous - Dictionary with previous parameter values. After initialization
+//      of a parameter set values of .current and .previous are identical
+//
+//   .initial - Dictionary with initial values
+//
+// Methods:
+//
+//   reset(_ path: String?) - Reset a parameter or the whole parameter set
+//      to it's initial value(s)
+//
+//   apply(_ path: String?) - Copy a parameter or the whole parameter set
+//      from .current to .previous
+//
+//   undo(_ path: String?) - Copy a parameter or the whole parameter set
+//      from .previous to .current
+//
+//   addSettings(_ initialValues: DictPar) - Add new parameters to parameter set.
+//      New parameters are merged with dictionaries .current, .previous, .initial
+//
+// Reading parameter values:
+//
+//   let value: Type = parameterSet(_ path: String, _ defaultValue: Any? = nil]
+//
+// Writing parameter values:
+//
+//   parameterSet[_ path: String] = newValue
+//
 
 struct ParameterSet {
     enum AccessMode: Int {
-        case current = 0
+        case current  = 0
         case previous = 1
-        case initial = 2
+        case initial  = 2
     }
     
     static let numSettings: Int = 3
@@ -20,12 +57,12 @@ struct ParameterSet {
     /// Array with dictionaries "current", "previous", "initial"
     var settings: [DictPar]
     
-    /// Initialize parameter set with dictionary of type DictPar = <String>,<Any>
+    /// Initialize parameter set with dictionary of type DictPar
     init(_ initialSettings: DictPar = [:]) {
         settings = Array(repeating: initialSettings, count: ParameterSet.numSettings)
     }
 
-    /// Direct access to dictionary
+    /// Direct access to a dictionary via AccessMode subscript
     subscript(_ mode: AccessMode) -> DictPar {
         get {
             return settings[mode.rawValue]
@@ -35,7 +72,7 @@ struct ParameterSet {
         }
     }
     
-    /// Add dictionary of type DictPar = <String>,<Any> with new settings to parameter set
+    /// Add dictionary of type DictPar  with new settings to parameter set
     mutating func addSettings(_ initialSettings: DictPar) {
         for i in 0..<ParameterSet.numSettings {
             settings[i].merge(initialSettings) { (_, new) in new }
@@ -71,20 +108,29 @@ struct ParameterSet {
             self[.previous] = self[.current]
         }
     }
-        
-    /// Get parameter value identified by path string
-    func get(_ path: String, _ defaultValue: Any? = nil, _ mode: AccessMode = .current) -> Any? {
-        return self[mode][path, defaultValue]
-    }
 
     /// Get or set parameter value identified by path string subscript
     subscript(_ path: String, _ defaultValue: Any? = nil) -> Any? {
         get {
-            return get(path, defaultValue, .current)
+            if self[.current].keys.contains(path) {
+                return self[.current][path]
+            }
+            else {
+                return defaultValue
+            }
         }
         set {
-            self[.previous][path] = self[.current][path]
-            self[.current][path] = newValue
+            if self[.current].keys.contains(path) {
+                // Modify existing parameter
+                self[.previous][path] = self[.current][path]
+                self[.current][path]  = newValue
+            }
+            else {
+                // Add new parameter
+                self[.previous][path] = newValue
+                self[.current][path]  = newValue
+                self[.initial][path]  = newValue
+            }
         }
     }
 

@@ -7,6 +7,12 @@
 
 import Foundation
 
+var myDict: Dictionary<String, Any> = [
+    "a": 100,
+    "b": 2.5,
+    "s": "222"
+]
+
 // Define parameter set
 let myParameterset = ParameterSet([
     "par1": Int(100),
@@ -23,6 +29,43 @@ let myParameterset = ParameterSet([
     ])
 ])
 
+// Read Int as Int
+let i: Int = myDict.getValue("a", 10)
+print("i: \(i)")
+
+// Read Double as Double
+let f: Double = myDict.getValue("b", 10.0)
+print("Subscript Double default: ", myDict["b", 10.0]!)
+print("Subscript Int default: ", myDict["b", 10]! as Int)
+print("f: \(f) \(type(of: f))")
+
+// Read Double as Int
+let intf: Int = myDict.getValue("b", 10)
+print("intf: \(intf)")
+
+// Read Double as Float
+let fltf: Float = myDict.getValue("b", 10.0)
+print("fltf: \(fltf) \(type(of: fltf))")
+
+// Read Int as Float
+let aflt: Float = myDict.getValue("a", 1.0)
+print("aflt: \(aflt), \(type(of: aflt))")
+
+print("Add c = 300.0 as Double")
+myDict.setValue("c", 300.0)
+print("Type of c is \(type(of: myDict["c"]!))")
+
+print("Assign int 10 to c (Double)")
+myDict.setValue("c", 10)
+print("Type of c is \(type(of: myDict["c"]!))")
+
+let istr: Int = myDict.getValue("s", 10)
+print("istr: \(istr)")
+
+let sflt: String = myDict.getValue("b", "1000.5")
+print("slft \(sflt), \(type(of: sflt))")
+
+/*
 let x = myParameterset["par", 200] as? Int
 print("x: \(x!)")
 
@@ -55,7 +98,7 @@ if let ps = myParameterset["par5"] as? ParameterSet {
     print("psz: \(psz)")
 }
 
-
+*/
 
 
 
