@@ -22,6 +22,8 @@
 //
 //   .initial - Dictionary with initial values
 //
+//  *** Data type of an element must be conform to protocol Castable! ***
+//
 // Methods:
 //
 //   reset(_ path: String?) - Reset a parameter or the whole parameter set
@@ -45,7 +47,17 @@
 //   parameterSet[_ path: String] = newValue
 //
 
-struct ParameterSet {
+typealias DictPar = Dictionary<String, any Castable>
+
+struct ParameterSet : Castable {
+    static func cast<T>(_ value: T) -> (any Castable)? where T : Castable {
+        return value
+    }
+    
+    static func == (lhs: ParameterSet, rhs: ParameterSet) -> Bool {
+        return lhs.settings[AccessMode.current.rawValue] == rhs.settings[AccessMode.current.rawValue]
+    }
+    
     enum AccessMode: Int {
         case current  = 0
         case previous = 1
@@ -53,6 +65,7 @@ struct ParameterSet {
     }
     
     static let numSettings: Int = 3
+    
     
     /// Array with dictionaries "current", "previous", "initial"
     var settings: [DictPar]
@@ -110,7 +123,14 @@ struct ParameterSet {
     }
 
     /// Get or set parameter value identified by path string subscript
-    subscript(_ path: String, _ defaultValue: Any? = nil) -> Any? {
+    ///
+    /// Returns (read access):
+    ///
+    ///   nil - if path doesn't exist and defaultValue is nil or if value
+    ///         of element is nil
+    ///   otherwise a value of a type conform to Castable
+    ///
+    subscript<T>(_ path: String, _ defaultValue: T? = nil) -> T? where T: Castable {
         get {
             if self[.current].keys.contains(path) {
                 return self[.current][path]
