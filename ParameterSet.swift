@@ -40,22 +40,39 @@
 //
 // Reading parameter values:
 //
-//   let value: Type = parameterSet(_ path: String, _ defaultValue: Any? = nil]
+//   let value: Type = parameterSet[_: String, default: Type? = nil]
+//
+// Reading a parameter value will never return nil. If no default value is
+// specified, the default value of the destination type is returned (0 or "0").
 //
 // Writing parameter values:
 //
-//   parameterSet[_ path: String] = newValue
+//   parameterSet[_: String] = newValue
+//
+// If an element exists, newValue is casted to type of element.
+// If an element doesn't exist, a new element with type of newValue is created.
 //
 
-typealias DictPar = Dictionary<String, any Castable>
-
 struct ParameterSet : Castable {
+    
+    static var defaultValue: ParameterSet {
+        return ParameterSet([:])
+    }
+    
     static func cast<T>(_ value: T) -> (any Castable)? where T : Castable {
         return value
     }
     
     static func == (lhs: ParameterSet, rhs: ParameterSet) -> Bool {
         return lhs.settings[AccessMode.current.rawValue] == rhs.settings[AccessMode.current.rawValue]
+    }
+    
+    func compareWith<T>(_ value: T) -> Bool where T: Castable {
+        if let v = value as? ParameterSet {
+            return self == v
+        }
+        
+        return false
     }
     
     enum AccessMode: Int {
@@ -66,7 +83,6 @@ struct ParameterSet : Castable {
     
     static let numSettings: Int = 3
     
-    
     /// Array with dictionaries "current", "previous", "initial"
     var settings: [DictPar]
     
@@ -76,7 +92,7 @@ struct ParameterSet : Castable {
     }
 
     /// Direct access to a dictionary via AccessMode subscript
-    subscript(_ mode: AccessMode) -> DictPar {
+    subscript(mode: AccessMode) -> DictPar {
         get {
             return settings[mode.rawValue]
         }
@@ -123,30 +139,18 @@ struct ParameterSet : Castable {
     }
 
     /// Get or set parameter value identified by path string subscript
-    ///
-    /// Returns (read access):
-    ///
-    ///   nil - if path doesn't exist and defaultValue is nil or if value
-    ///         of element is nil
-    ///   otherwise a value of a type conform to Castable
-    ///
-    subscript<T>(_ path: String, _ defaultValue: T? = nil) -> T? where T: Castable {
+    subscript<T>(path: String, default def: T? = nil) -> T where T: Castable {
         get {
-            if self[.current].keys.contains(path) {
-                return self[.current][path]
-            }
-            else {
-                return defaultValue
-            }
+           return self[.current][path, default: def]
         }
         set {
             if self[.current].keys.contains(path) {
-                // Modify existing parameter
+                // Save current value and set element to new value
                 self[.previous][path] = self[.current][path]
                 self[.current][path]  = newValue
             }
             else {
-                // Add new parameter
+                // Add a new parameter
                 self[.previous][path] = newValue
                 self[.current][path]  = newValue
                 self[.initial][path]  = newValue

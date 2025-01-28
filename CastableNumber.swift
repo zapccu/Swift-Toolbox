@@ -8,20 +8,35 @@
 //
 // Protocol for numeric types castable to each other
 //
+// This protocol does not support nil values. Therefor a static property
+// "defaultValue" must be defined by each datatype. This values is returned
+// by the static casting function cast(), if type casting is not possible.
+//
 
 protocol Castable: Equatable {
     
-    /// Cast a numeric value
+    /// Cast a numeric value from type T to type conform to protocol Castable
     static func cast<T>(_ value: T) -> (any Castable)? where T: Castable
+ 
+    /// Compare two values
+    func compareWith<T>(_ value: T) -> Bool where T: Castable
+    
+    /// Return a default value if a value is not castable
+    static var defaultValue: Self { get }
 }
 
 
 //
-// Make Int, UInt, Float, Double conform to protocol Castable
+// Make Int, UInt, Float, Double and String  conform to protocol Castable by
+// implementing function cast()
 //
 
 extension Int: Castable {
-
+    
+    static var defaultValue: Int {
+        return 0
+    }
+    
     static func cast<T>(_ value: T) -> (any Castable)? where T : Castable {
         if let v = value as? Int {
             return v
@@ -35,15 +50,28 @@ extension Int: Castable {
         else if let v = value as? Double {
             return Int(v)
         }
-        else if let v = value as? String {
-            return Int(v)
+        else if let v = value as? String, let d = Double(v) {
+            // Casting a floating point string directly to Int doesn't work
+            return Int(d)
         }
-
-        return nil
+        
+        return defaultValue
+    }
+    
+    func compareWith<T>(_ value: T) -> Bool where T: Castable {
+        if let v = value as? Int {
+            return self == v
+        }
+        
+        return false
     }
 }
 
 extension UInt: Castable {
+    
+    static var defaultValue: UInt {
+        return 0
+    }
 
     static func cast<T>(_ value: T) -> (any Castable)? where T : Castable {
         if let v = value as? UInt {
@@ -58,15 +86,28 @@ extension UInt: Castable {
         else if let v = value as? Double {
             return UInt(v)
         }
-        else if let v = value as? String {
-            return UInt(v)
+        else if let v = value as? String, let d = Double(v) {
+            // Casting a floating point string directly to UInt doesn't work
+            return UInt(d)
         }
         
-        return nil
+        return defaultValue
+    }
+    
+    func compareWith<T>(_ value: T) -> Bool where T: Castable {
+        if let v = value as? UInt {
+            return self == v
+        }
+        
+        return false
     }
 }
 
 extension Float: Castable {
+    
+    static var defaultValue: Float {
+        return Float(0.0)
+    }
     
     static func cast<T>(_ value: T) -> (any Castable)? where T : Castable {
         if let v = value as? Float {
@@ -81,15 +122,27 @@ extension Float: Castable {
         else if let v = value as? Double {
             return Float(v)
         }
-        else if let v = value as? String {
-            return Float(v)
+        else if let v = value as? String, let d = Double(v) {
+            return Float(d)
         }
         
-        return nil
+        return defaultValue
+    }
+    
+    func compareWith<T>(_ value: T) -> Bool where T: Castable {
+        if let v = value as? Float {
+            return self == v
+        }
+        
+        return false
     }
 }
 
 extension Double: Castable {
+    
+    static var defaultValue: Double {
+        return Double(0.0)
+    }
     
     static func cast<T>(_ value: T) -> (any Castable)? where T : Castable {
         if let v = value as? Double {
@@ -104,15 +157,27 @@ extension Double: Castable {
         else if let v = value as? Float {
             return Double(v)
         }
-        else if let v = value as? String {
-            return Double(v)
+        else if let v = value as? String, let d = Double(v) {
+            return d
         }
         
-        return nil
+        return defaultValue
+    }
+    
+    func compareWith<T>(_ value: T) -> Bool where T: Castable {
+        if let v = value as? Double {
+            return self == v
+        }
+        
+        return false
     }
 }
 
 extension String: Castable {
+    
+    static var defaultValue: String {
+        return "0"
+    }
     
     static func cast<T>(_ value: T) -> (any Castable)? where T : Castable {
         if let v = value as? String {
@@ -131,141 +196,88 @@ extension String: Castable {
             return String(v)
         }
         
-        return nil
+        return defaultValue
+    }
+    
+    func compareWith<T>(_ value: T) -> Bool where T: Castable {
+        if let v = value as? String {
+            return self == v
+        }
+        
+        return false
     }
 }
 
 
 //
-// Extend dictionary of type <String, Any> to support automatic type casting
-// of numeric elements
+// Extend dictionary of type <String, any Castable> to support automatic type casting
+// of numeric elements. Strings containing numbers are supported. Elements of dictionary
+// must not be nil!
 //
 
-extension Dictionary<String, any Castable> where Key == String {
-    
-    static func == (lhs: Dictionary<String, any Castable>, rhs: Dictionary<String, any Castable>) -> Bool {
-        return lhs.keys.sorted() == rhs.keys.sorted()
-    }
-    
-    func getVal<D>(_ key: Key, _ defaultValue: D = 0) -> D where D: Castable {
-        if self[key] is D {
-            return self[key] as? D ?? defaultValue
-        }
-        else {
-            return D.cast(self[key]!) as! D
-        }
-    }
-    
-    /// Return type casted numeric value of dictionary entry of type Int, UInt, Float, Double, String
-    /*
-    func getValue<T>(_ key: Key, _ defaultValue: T = 0) -> T where T: Castable {
-        guard self[key] != nil else { return defaultValue }
+typealias DictPar = Dictionary<String, any Castable>
 
-        if self[key] is T {
-            // No type casting necessary
-            return self[key] as? T ?? defaultValue
-        }
-        else if let v = self[key] {
-            if T.self == Int.self {
-                return Int.cast(v) as? T ?? defaultValue
-            }
-            else if T.self == UInt.self {
-                return UInt.cast(v) as? T ?? defaultValue
-            }
-            else if T.self == Float.self {
-                return Float.cast(v) as? T ?? defaultValue
-            }
-            else if T.self == Double.self {
-                return Double.cast(v) as? T ?? defaultValue
-            }
-        }
-        else if let v = self[key] as? String {
-            if T.self == Int.self {
-                return (Int(v) as? T) ?? defaultValue
-            }
-            else if T.self == UInt.self {
-                return (UInt(v) as? T) ?? defaultValue
-            }
-            else if T.self == Float.self {
-                return (Float(v) as? T) ?? defaultValue
-            }
-            else if T.self == Double.self {
-                return (Double(v) as? T) ?? defaultValue
+func compareElements<T>(_ lhs: T, _ rhs: T) -> Bool where T: Castable {
+    return lhs == rhs
+}
+
+extension Dictionary<String, any Castable> where Key == String, Value == any Castable {
+    
+    // Compare dictionaries
+    static func == (lhs: Dictionary<String, any Castable>, rhs: Dictionary<String, any Castable>) -> Bool {
+        guard lhs.keys.sorted() == rhs.keys.sorted() else { return false }
+        
+        for (k, v) in lhs {
+            guard rhs[k] != nil else { return false }
+            
+            if !(v.compareWith(rhs[k]!)) {
+                return false
             }
         }
         
-        return defaultValue
+        return true
     }
     
-    /// Return string value of dictionary entry of type Int, UInt, Float, Double, String
-    func getValue<T>(_ key: Key, _ defaultValue: T = "") -> T where T: StringProtocol {
+    /// Return the value of a dictionary element or a default value
+    ///
+    /// If key doesn't exist or element value is nil, return default (if specified) or T.defaultValue
+    ///
+    func get<T>(_ key: Key, default: T? = nil) -> T where T: Castable {
+        guard self.keys.contains(key) && self[key] != nil else { return `default` ?? T.defaultValue }
+        
         if self[key] is T {
-            return self[key] as? T ?? defaultValue
-        }
-        else if let v = self[key] as? (any LosslessStringConvertible) {
-            return String(v) as? T ?? defaultValue
+            // types are matching
+            return self[key] as! T
         }
         else {
-            return defaultValue
+            // cast to destination type
+            return T.cast(self[key]!) as! T
         }
     }
-     */
 
-    mutating func setVal(_ key: Key, _ value: Value) {
+    /// Set value of a dictionary element to the specified value or the default
+    /// value of the castable type (if no value is specified)
+    ///
+    mutating func set<T>(_ key: Key, _ value: T? = nil) where T: Castable {
+        let value: T = value ?? T.defaultValue
+        
         if !self.keys.contains(key) {
             // Create new entry
-            self[key] = (value )
+            self[key] = value
         }
         else {
+            // Element exists. value must be casted to type of existing element
             self[key] = type(of: self[key]!).cast(value)
         }
     }
     
-    /// Set dictionary entry to numeric value
-    /*
-    mutating func setValue<T>(_ key: Key, _ value: T, defaultValue: T = 0) where T: Castable {
-        if !self.keys.contains(key) {
-            // Create new entry
-            self[key] = (value as! Value)
-        }
-        else {
-            // Entry exists
-            if self[key] is Int {
-                self[key] = (((Int.cast(value)) ?? defaultValue) )
-            }
-            else if self[key] is UInt {
-                self[key] = (((UInt.cast(value)) ?? defaultValue) )
-            }
-            else if self[key] is Float {
-                self[key] = (((Float.cast(value)) ?? defaultValue) )
-            }
-            else if self[key] is Double {
-                self[key] = (((Double.cast(value)) ?? defaultValue) )
-            }
-            else if self[key] is String {
-                self[key] = (((String.cast(value)) ?? defaultValue) )
-            }
-        }
-    }
-     */
-    
-    subscript<T>(_ path: String, defaultValue: T? = nil) -> T? where T: Castable {
+    subscript<T>(_ path: String, default def: T? = nil) -> T where T: Castable {
         get {
-            return getVal(path, defaultValue!)
+            return get(path, default: def)
         }
         set {
-            setVal(path, newValue!)
+            set(path, newValue)
         }
     }
-    
-    /*
-    subscript<T>(_ path: String, defaultValue: T? = nil) -> T? where T: StringProtocol {
-        get {
-            return getValue(path, defaultValue!)
-        }
-        set {
-            setVal(path, newValue!)
-        }
-    }
-     */
+
 }
