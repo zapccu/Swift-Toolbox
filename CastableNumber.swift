@@ -9,7 +9,7 @@
 // Protocol for numeric types castable to each other
 //
 // This protocol does not support nil values. Therefor a static property
-// "defaultValue" must be defined by each datatype. This values is returned
+// "defaultValue" must be defined by each datatype. This value is returned
 // by the static casting function cast(), if type casting is not possible.
 //
 
@@ -211,18 +211,63 @@ extension String: Castable {
 
 //
 // Extend dictionary of type <String, any Castable> to support automatic type casting
-// of numeric elements. Strings containing numbers are supported. Elements of dictionary
-// must not be nil!
+// of numeric elements. Strings containing numbers are supported.
+//
+// Requirements:
+//
+// - Elements of dictionary must not be nil
+// - Element types must be conform to protocol Castable
 //
 
+// Type alias
 typealias DictPar = Dictionary<String, any Castable>
 
+/// Compare two castable values of same type
 func compareElements<T>(_ lhs: T, _ rhs: T) -> Bool where T: Castable {
     return lhs == rhs
 }
 
-extension Dictionary<String, any Castable> where Key == String, Value == any Castable {
+/// Compare two castable values of different types
+/// Value rhs is casted to T before comparing the values
+func compareElemments<T, U>(_ lhs: T, _ rhs: U) -> Bool where T: Castable, U: Castable {
+    if type(of: lhs) == type(of: rhs) {
+        return compareElements(lhs, rhs as! T)
+    }
+    else {
+        return compareElements(lhs, T.cast(rhs) as! T)
+    }
+}
+
+// Make Dictionary conform to protocol Castable
+extension Dictionary : Castable where Value : Castable {
     
+    /// Cast to Dictionary
+    static func cast<T>(_ value: T) -> (any Castable)? where T : Castable {
+        // Only Dictionaries can be casted to Dictionaries
+        if let v = value as? Dictionary<String, T> {
+            return v
+        }
+        
+        return defaultValue
+    }
+    
+    /// Todo: Implement comparision of two dictionaries (see ParameterSet)
+    func compareWith<T>(_ value: T) -> Bool where T : Castable {
+        return self == value
+    }
+    
+    // Default value is an empty dictionary
+    static var defaultValue: Dictionary<Key, Value> {
+        return [:]
+    }
+    
+}
+
+// Extend dictionary to support automatic type casting of values
+// Elements in sub-dictionaries can be accessed by segmented string keys.
+
+// extension Dictionary where Key == String, Value == any Castable {
+extension Dictionary<String, any Castable> {
     // Compare dictionaries
     static func == (lhs: Dictionary<String, any Castable>, rhs: Dictionary<String, any Castable>) -> Bool {
         guard lhs.keys.sorted() == rhs.keys.sorted() else { return false }
@@ -271,6 +316,8 @@ extension Dictionary<String, any Castable> where Key == String, Value == any Cas
         }
     }
     
+    /// Access dictionary element by subscript
+    ///
     subscript<T>(_ path: String, default def: T? = nil) -> T where T: Castable {
         get {
             return get(path, default: def)

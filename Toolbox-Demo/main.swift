@@ -119,7 +119,8 @@ print("par6 = ", myParameterset["par6", default: "0"], type(of: myParameterset["
 print("Access sub parameter set")
 // ERR-2: Segmented path not working
 // let sx: Int = myParameterset["par5.x", default: 0]
-let sx: Int = myParameterset["par5", default: ParameterSet([:])]["x", default: 0]
+let sx: Int = myParameterset.get("par5.x", default: 0)
+//let sx: Int = myParameterset["par5", default: ParameterSet([:])]["x", default: 0]
 print("sx: \(sx) \(type(of: sx))\n")
 
 

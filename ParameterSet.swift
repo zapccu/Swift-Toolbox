@@ -173,6 +173,10 @@ struct ParameterSet : Castable {
             let newPath = segs.dropFirst().joined(separator: ".")
             return v.get(newPath, default: def)
         }
+        else if let v = self[.current][segs[0]] as? DictPar {
+            let newPath = segs.dropFirst().joined(separator: ".")
+            return v.get(newPath)
+        }
         else {
             // Ignore everything after fist segment
             return self[.current][segs[0], default: def]
