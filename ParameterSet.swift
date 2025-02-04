@@ -4,8 +4,6 @@
 //
 //  Created by Dirk Braner on 24.11.24.
 //
-//  Requires DictionaryPath
-//
 
 //
 // ParameterSet structure
@@ -55,6 +53,8 @@
 // If an element doesn't exist, a new element with type of newValue is created.
 //
 
+import Foundation
+
 struct ParameterSet : Castable {
     
     // Default value is an empty parameterset
@@ -62,9 +62,14 @@ struct ParameterSet : Castable {
         return ParameterSet([:])
     }
     
-    // A castable type cannot be casted to type ParameterSet.
-    // If T is not of type ParameterSet, the default value is returned
-    static func cast<T>(_ value: T) -> (any Castable)? where T : Castable {
+    /// Check if value is castable to ParameterSet
+    static func isCastable<T>(_ value: T) -> Bool {
+        return value is ParameterSet
+    }
+    
+    /// A castable type cannot be casted to type ParameterSet.
+    /// If T is not of type ParameterSet, the default value (empty ParameterSet) is returned
+    static func cast<T>(_ value: T) -> (any Castable) where T : Castable {
         if let v = value as? ParameterSet {
             return v
         }
@@ -72,12 +77,12 @@ struct ParameterSet : Castable {
         return defaultValue
     }
     
-    // Compare 2 parametersets
+    /// Compare 2 parametersets
     static func == (lhs: ParameterSet, rhs: ParameterSet) -> Bool {
-        return lhs.settings[AccessMode.current.rawValue] == rhs.settings[AccessMode.current.rawValue]
+        return NSDictionary(dictionary: lhs.current).isEqual(to: NSDictionary(dictionary: rhs.current))
     }
     
-    // Compare current parameterset with a castable value
+    /// Compare current parameterset with a castable value
     func compareWith<T>(_ value: T) -> Bool where T: Castable {
         if let v = value as? ParameterSet {
             return self == v
@@ -86,103 +91,101 @@ struct ParameterSet : Castable {
         return false
     }
     
-    enum AccessMode: Int {
-        case current  = 0   // Parameterset with current values
-        case previous = 1   // Parameterset with previous values
-        case initial  = 2   // Parameterset with initial values
-    }
-    
-    // Number of dictionaries (for future enhancements)
-    static let numSettings: Int = 3
-    
-    // Array with dictionaries .current, .previous, .initial
-    var settings: [DictPar]
+    // Dictionaries containing parameter values
+    var current: DictAny
+    var previous: DictAny
+    var initial: DictAny
     
     /// Initialize parameter set with dictionary of type DictPar
-    init(_ initialSettings: DictPar = [:]) {
-        settings = Array(repeating: initialSettings, count: ParameterSet.numSettings)
-    }
-
-    /// Direct access to a dictionary via AccessMode subscript
-    subscript(mode: AccessMode) -> DictPar {
-        get {
-            return settings[mode.rawValue]
-        }
-        set {
-            settings[mode.rawValue] = newValue
-        }
+    init(_ initialSettings: DictAny = [:]) {
+        current  = initialSettings
+        previous = initialSettings
+        initial  = initialSettings
     }
     
     /// Add dictionary of type DictPar with new settings to parameter set
-    mutating func addSettings(_ initialSettings: DictPar) {
-        for i in 0..<ParameterSet.numSettings {
-            settings[i].merge(initialSettings) { (_, new) in new }
-        }
+    mutating func addSettings(_ initialSettings: DictAny) {
+        current.merge(initialSettings)  { (_, new) in new }
+        previous.merge(initialSettings) { (_, new) in new }
+        initial.merge(initialSettings)  { (_, new) in new }
     }
     
     /// Set parameter or parameter set to initial settings
     mutating func reset(_ path: String?) {
         if let path = path {
-            self[.current][path] = self[.initial][path]
+            current[path] = initial[path]
         }
         else {
-            self[.current] = self[.initial]
+            current = initial
         }
     }
     
     /// Set parameter or parameterset to previuos settings
     mutating func undo(_ path: String?) {
         if let path = path {
-            self[.current][path] = self[.previous][path]
+            current[path] = previous[path]
         }
         else {
-            self[.current] = self[.previous]
+            current = previous
         }
     }
     
     /// Set previous settings of parameter or parameterset to current settings
     mutating func apply(_ path: String?) {
         if let path = path {
-            self[.previous][path] = self[.current][path]
+            previous[path] = current[path]
         }
         else {
-            self[.previous] = self[.current]
+            previous = current
         }
     }
 
     /// Return parameter value
     ///
     /// path - Hierarchical dictionary key. Keys/subkeys are separated by '.'
+    ///
     /// default - Value to be returned if key doesn't exist or value is nil.
     ///    If default is nil, the default value of the destination data type
     ///    is returned. Returned value is never nil!
     ///
-    func get<T>(_ path: String, default def: T? = nil) -> T where T: Castable {
+    func get<T>(_ path: String, default def: T = T.defaultValue) -> T where T: Castable {
+        print("  ParameterSet get \(path) default \(def)")
+        /*
+        if let val = anyDict[keyPath: path, default: def] {
+            if let cval = val as? any Castable {
+                return T.cast(cval) as! T
+            }
+        }
+         */
         // Split path into segments
         let segs = path.components(separatedBy: ".")
         
-        if segs.count == 1 {
-            return self[.current][path, default: def]
-        }
-        else if segs.count == 0 {
-            return self[.current]["", default: def]
+        // Empty path is not allowed
+        guard segs.count > 0 && segs[0] != "" else { return def }
+        
+        if current.keys.contains(segs[0]) {
+            // First segment key exists
+            if segs.count == 1 {
+                // Last/only one segment. Return element value
+                return current[path: segs[0], default: def]
+            }
+            else {
+                // More than 1 segment left in path
+                if let v = current[segs[0]] as? ParameterSet {
+                    // If element of first segment is a ParameterSet, recursively call get() with rest of path
+                    let newPath = segs.dropFirst().joined(separator: ".")
+                    return v.get(newPath, default: def)
+                }
+                else {
+                    // Other types (i.e. sub-dictionaries) are not yet supported
+                    return def
+                }
+            }
         }
         
-        if let v = self[.current][segs[0]] as? ParameterSet {
-            // Recursively call get() with rest of path
-            let newPath = segs.dropFirst().joined(separator: ".")
-            return v.get(newPath, default: def)
-        }
-        else if let v = self[.current][segs[0]] as? DictPar {
-            let newPath = segs.dropFirst().joined(separator: ".")
-            return v.get(newPath)
-        }
-        else {
-            // Ignore everything after fist segment
-            return self[.current][segs[0], default: def]
-        }
+        return def
     }
-    
+
     /// Set parameter value
     ///
     /// path - Hierarchical dictionary key. Keys/subkeys are separated by '.'
@@ -210,50 +213,69 @@ struct ParameterSet : Castable {
     /// parset.set("c.z", 300)
     ///
     mutating func set<T>(_ path: String, _ value: T) where T: Castable {
+        print("  ParameterSet set \(path) \(value)")
+        
         // Split path into segments
         let segs = path.components(separatedBy: ".")
 
-        guard segs.count > 0 else { return }
+        // Empty path is not allowed
+        guard segs.count > 0 && segs[0] != "" else { return }
         
         if segs.count == 1 {
-            if self[.current].keys.contains(path) {
-                // Save current value and set element to new value
-                self[.previous][path] = self[.current][path]
-                self[.current][path]  = value
+            // Last segment
+            if current.keys.contains(segs[0]) {
+                // Save current value and set element to new value by using DictPar subscript
+                previous[segs[0]] = current[segs[0]]
+                current[path: segs[0]] = value
             }
             else {
                 // Add a new parameter
-                self[.previous][path] = value
-                self[.current][path]  = value
-                self[.initial][path]  = value
+                previous[segs[0]] = value
+                current[segs[0]]  = value
+                initial[segs[0]]  = value
             }
         }
-        else if var v = self[.current][segs[0]] as? ParameterSet {
-                // Recursively call set() with rest of path
-                let newPath = segs.dropFirst().joined(separator: ".")
-                v.set(newPath, value)
-        }
         else {
-            return
+            // More than 1 segment left in path
+            if current.keys.contains(segs[0]) {
+                // First segment key exists
+                if var v = current[segs[0]] as? ParameterSet {
+                    // If element of first segment is a ParameterSet, recursively call set() with rest of path
+                    let newPath = segs.dropFirst().joined(separator: ".")
+                    v.set(newPath, value)
+                    current[segs[0]] = v
+                }
+                else {
+                    // If number of segements is > 1, the element of the first segment key must be ParameterSet
+                    return
+                }
+            }
+            else {
+                // First segment key doesn't exist. Create an empty ParameterSet value and assign it to segs[0]
+                let newPath = segs.dropFirst().joined(separator: ".")
+                var ps = ParameterSet()
+                ps.set(newPath, value)
+                current[segs[0]] = ps
+            }
         }
     }
     
     /// Get or set parameter value identified by path string subscript
-    subscript<T>(path: String, default def: T? = nil) -> T where T: Castable {
+    subscript<T>(path: String, default def: T) -> T where T: Castable {
         get {
-           return self[.current][path, default: def]
+            print("  ParameterSet subscript get \(path) default \(def)")
+            return current[path: path, default: def]
         }
         set {
-            if self[.current].keys.contains(path) {
-                // Save current value and set element to new value
-                self[.previous][path] = self[.current][path]
-                self[.current][path]  = newValue
+            print("  ParameterSet subscript set \(path) \(newValue)")
+            if current.pathExists(path) {
+                previous[path: path] = current[path: path, default: def]
+                current[path: path] = newValue
             }
             else {
-                // Add a new parameter
-                self[.previous][path] = newValue
-                self[.current][path]  = newValue
-                self[.initial][path]  = newValue
+                current[path: path]  = newValue
+                previous[path: path] = newValue
+                initial[path: path]  = newValue
             }
         }
     }

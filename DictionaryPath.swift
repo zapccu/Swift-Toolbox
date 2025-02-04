@@ -5,89 +5,146 @@
 //  Created by Dirk Braner on 24.11.24.
 //
 
-typealias DictAny = Dictionary<String,Any>
-
 //
-// Extend Dictionaries of type <String,Any> by subscript parameter "path".
-// A path allows read and write access to a Dictionary hierarchy.
-// A path is a string where the segments are seperated by a ".".
+// Extend Dictionaries of type <String,Any> to support direct access to
+// dictionary hierarchies by specifying a path.
+//
+// A path is a string where the segments (representing the dictionary levels) are
+// seperated by a ".".
 //
 // Example:
 //
-// let myDict = [
-//    "a": 1, "b": 2,
+// var myDict = [
+//    "a": 1,
+//    "b": 2,
 //    "c:" [
 //       "d:" 3
 //    ]
 //
-// let x = myDict["c.d"]!
-// myDict["c.d"] = 10
+// let x: Int = myDict[path: "c.d", default: 0]         // Read a castable Int value
+// let y: Double = myDict[path: "c.d", default: 0.0]    // Read an Int value and cast it to Double
+//
+// myDict[path: "c.d"] = 10                             // Assign Int
+// myDict[path: "c.d"] = Complex(1.0)                   // Will fail if Complex is not castable
+//
+// myDict[path: "c.e"] = 1.5                            // Create a new entry of type Double
+//
+// if let a = myDict[keyPath: "a"] { ... }              // Read value of type Any?
 //
 
-extension Dictionary<String, Any> {
+import Foundation
 
+typealias DictAny = [String: Any]
+
+extension Dictionary where Key == String {
+    
+    /// Get or set a castable value identified by parameter path
+    ///
+    /// Getting a value for a non existing element returns ...
+    ///    ... default if parameter default is specified
+    ///    ... default of type T if no default is specified or value cannot be casted to type T
+    ///
+    /// Setting a value fails if type of a sub-dictionary element is not DictAny or if element
+    /// exists but new value cannot be casted to type of existing element
+    ///
+    /*
+    subscript<T>(path path: String, default def: T = T.defaultValue) -> T where T: Castable {
+        get {
+            if let v = self[keyPath: path] as? any Castable {
+                return T.cast(v) as! T
+            }
+            
+            return def
+        }
+        set {
+            if let v = self[keyPath: path] as? any Castable {
+                // Element exists and value is castable
+                let t = type(of: v)
+                if t.isCastable(newValue) {
+                    self[keyPath: path] = t.cast(newValue)
+                }
+            }
+            else if !self.keys.contains(path) {
+                // Element doesn't exist. Create a new entry
+                self[keyPath: path] = newValue
+            }
+        }
+    }
+     */
+    
+    /// Compare 2 dictionaries
+    static func == (lhs: DictAny, rhs: DictAny) -> Bool {
+        return NSDictionary(dictionary: lhs).isEqual(to: NSDictionary(dictionary: rhs))
+    }
+    
     /// Check if path exists
     func pathExists(_ path: String) -> Bool {
-        // Split path into segments
-        let seg = path.components(separatedBy: ".")
+        let segs = path.components(separatedBy: ".")
         
-        // Prevent an empty key
-        guard seg.count > 0 else { return false }
-        
-        if let element = self[seg[0]] {
-            if element is DictAny {
-                let newDict = element as! DictAny
-                let newPath = seg.dropFirst().joined(separator: ".")
-                return newDict.pathExists(newPath)
-            }
-            else if seg.count == 1 {
-                return true
-            }
+        guard segs.count > 0 && segs[0] != "" else { return false }
+
+        if segs.count == 1 {
+            return self.keys.contains(Key(segs[0]))
+        }
+        else if let subDict = self[segs[0]] as? DictAny {
+            let newPath = segs.dropFirst().joined(separator: ".")
+            return subDict.pathExists(newPath)
         }
         
         return false
     }
     
-    /// Get or set value identified by path
-    subscript(_ path: String, _ defaultValue: Any? = nil) -> Any? {
+    /// Get or set value of type Any identified by parameter keyPath
+    ///
+    /// Getting a value return nil if element doesn't exist and no default is specified
+    /// Setting a value fails if type of a sub-dictionary element is not DictAny
+    ///
+    subscript(keyPath keyPath: String, default def: Any? = nil) -> Any? {
         get {
-            let seg = path.components(separatedBy: ".")
+            let segs = keyPath.components(separatedBy: ".")
             
             // Prevent an empty key
-            guard seg.count > 0 else { return nil }
+            guard segs.count > 0 && segs[0] != "" && self.keys.contains(segs[0]) else { return def }
             
-            if seg.count == 1 {
-                return self[seg[0], default: defaultValue!]
+            let key = Key(segs[0])
+            if segs.count == 1 {
+                return self[key] ?? def
+            }
+            else if let subDict = self[key] as? DictAny {
+                let newPath = segs.dropFirst().joined(separator: ".")
+                return subDict[keyPath: newPath, default: def]
             }
 
-            if let element = self[seg[0]] {
-                if element is DictAny {
-                    // Element is a dictionary
-                    // Recursively call subscript with child dictionary and remanining path
-                    let newDict = element as! DictAny
-                    let newPath = seg.dropFirst().joined(separator: ".")
-                    return newDict[newPath, defaultValue]
-                }
-            }
-            
-            return defaultValue
+            return def
         }
         set {
-            let seg = path.components(separatedBy: ".")
+            let segs = keyPath.components(separatedBy: ".")
             
             // Prevent an empty key
-            guard seg.count > 0 else { return }
+            guard segs.count > 0 && segs[0] != "" else { return }
             
-            if seg.count == 1 {
+            let key = Key(segs[0])
+            
+            if segs.count == 1 {
                 // Reached last element in path
-                self[seg[0]] = newValue
+                self[key] = newValue as? Value
             }
             else {
-                // Recursively call subscript assignment with remaining path
-                var dict: DictAny = self[seg[0]] == nil ? [:] : self[seg[0]] as! DictAny
-                let newPath = seg.dropFirst().joined(separator: ".")
-                dict[newPath] = newValue
-                self[seg[0]] = dict
+                let newPath = segs.dropFirst().joined(separator: ".")
+                if self.keys.contains(key) {
+                    if var subDict = self[key] as? DictAny {
+                        subDict[keyPath: newPath] = newValue
+                        self[key] = subDict as? Value
+                    }
+                    else {
+                        return
+                    }
+                }
+                else {
+                    var subDict: [Key: Any] = [:]
+                    subDict[keyPath: newPath] = newValue
+                    self[key] = subDict as? Value
+                }
             }
         }
     }
