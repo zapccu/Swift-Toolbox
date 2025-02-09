@@ -37,41 +37,7 @@ import Foundation
 typealias DictAny = [String: Any]
 
 extension Dictionary where Key == String {
-    
-    /// Get or set a castable value identified by parameter path
-    ///
-    /// Getting a value for a non existing element returns ...
-    ///    ... default if parameter default is specified
-    ///    ... default of type T if no default is specified or value cannot be casted to type T
-    ///
-    /// Setting a value fails if type of a sub-dictionary element is not DictAny or if element
-    /// exists but new value cannot be casted to type of existing element
-    ///
-    /*
-    subscript<T>(path path: String, default def: T = T.defaultValue) -> T where T: Castable {
-        get {
-            if let v = self[keyPath: path] as? any Castable {
-                return T.cast(v) as! T
-            }
-            
-            return def
-        }
-        set {
-            if let v = self[keyPath: path] as? any Castable {
-                // Element exists and value is castable
-                let t = type(of: v)
-                if t.isCastable(newValue) {
-                    self[keyPath: path] = t.cast(newValue)
-                }
-            }
-            else if !self.keys.contains(path) {
-                // Element doesn't exist. Create a new entry
-                self[keyPath: path] = newValue
-            }
-        }
-    }
-     */
-    
+      
     /// Compare 2 dictionaries
     static func == (lhs: DictAny, rhs: DictAny) -> Bool {
         return NSDictionary(dictionary: lhs).isEqual(to: NSDictionary(dictionary: rhs))
@@ -148,6 +114,66 @@ extension Dictionary where Key == String {
             }
         }
     }
+    
+    /// Convert dictionary to JSON
+    /// 
+    /// Returns empty String on error
+    var jsonString: String {
+        guard let data = try? JSONSerialization.data(withJSONObject: self, options: [.prettyPrinted]),
+              let string = String(data: data, encoding: .utf8)
+        else { return "" }
+        return string
+    }
+    
+    /// Convert dictionary to JSON string
+    var toJSON: String {
+        var str = ""
+        
+        for (k,v) in self {
+            if str != "" { str += ",\n\"\(k)\":" }
+            
+            switch v {
+                case let v as DictAny: str += v.toJSON
+                case let v as UInt: str += String(v)
+                case let v as Int: str += String(v)
+                case let v as Float: str += String(v)
+                case let v as Double: str += String(v)
+                case let v as String: str += "\"\(v)\""
+                default: break
+            }
+        }
+        
+        return "{\n\(str)\n}"
+    }
+
+    /// Create dictionary from JSON string
+    ///
+    /// Creates an empty dictionary if input string is not convertible
+    init(jsonString: String) {
+        guard let data = jsonString.data(using: .utf8) else {
+            self = [:]
+            return
+        }
+        do {
+            self = try JSONSerialization.jsonObject(with: data, options: []) as! [String: Value]
+        }
+        catch {
+            self = [:]
+        }
+    }
+
 }
 
-
+func expect<T,C>(_ value: T, _ current: C, _ varname: String) where T: Equatable, C: Equatable {
+    if (T.self == C.self) {
+        if current as! T != value {
+            print("ERR: Expected value \(value) for \(varname), but got \(current)")
+        }
+        else {
+            print("OK: \(varname) = \(current), type = \(type(of: current))")
+        }
+    }
+    else {
+        print("ERR: Expected type \(T.self) for \(varname), but got \(C.self)")
+    }
+}

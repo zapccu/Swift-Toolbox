@@ -1,80 +1,139 @@
 //
 //  ParameterSet.swift
-//  Swift-Toolbox
+//
+//  Part of Swift-Toolbox
+//
+//  Requires Castable, Dictionary Path, JEncodeDecode
 //
 //  Created by Dirk Braner on 24.11.24.
 //
 
+
+import Foundation
+
+//
+// Extend Dictionary to support Castable element values
+//
+
+extension Dictionary where Key == String {
+    
+    /// Get or set a castable value identified by parameter path
+    ///
+    /// Getting a value for a non existing element returns ...
+    ///    ... default if parameter default is specified
+    ///    ... T.defaultValue if no default is specified
+    ///
+    /// Getting a value for an existing but not castable element returns T.default
+    ///
+    /// Setting a value fails if ...
+    ///    ... path addresses sub-dictionaries and type of a path segment is not DictAny
+    ///    ... element exists but new value cannot be casted to type of existing element
+    ///
+    /// When setting a value for non-existing sub-dictionaries or elements, sub-dictionaries
+    /// and elements are created.
+    ///
+    subscript<T>(path path: String, default def: T = T.defaultValue) -> T where T: Castable {
+        get {
+            if let v = self[keyPath: path, default: def] as? any Castable {
+                print("  \(path) is \(type(of: v))")
+                // Cast value of element to destination type
+                if T.defaultValue.isCastable(from: v) {
+                    return T.cast(from: v) as! T
+                }
+            }
+            
+            return def
+        }
+        set {
+            if pathExists(path) {
+                if let v = self[keyPath: path] as? any Castable, v.isCastable(from: newValue) {
+                    // Element exists and new value is castable
+                    let t = type(of: v)
+                    self[keyPath: path] = t.cast(from: newValue)
+                }
+            }
+            else {
+                // Element doesn't exist. Create a new entry
+                self[keyPath: path] = newValue
+            }
+        }
+    }
+}
+
 //
 // ParameterSet structure
 //
-// A ParameterSet is an array of 3 dictionaries which can be used to manage
-// application parameters. The dictionaries are of type <String, Any> / DictPar
+// A ParameterSet contains 3 dictionaries for current, previous and initial
+// parameter values which can be used to manage application parameters.
+// The dictionaries are of type <String, Any> / DictAny
 //
 //   .current - Dictionary with current parameter values. When a parameter
 //      value is changed in this dictionary, the old value is stored in
 //      dictionary .previous
 //
 //   .previous - Dictionary with previous parameter values. After initialization
-//      of a parameter set values of .current and .previous are identical
+//      of a parameterset values of .current and .previous are identical
 //
 //   .initial - Dictionary with initial values
 //
-//  *** Data type of an element must be conform to protocol Castable! ***
+// Note:
+//
+//  *** The data type of an element must be conform to protocol Castable! ***
 //
 // Methods:
 //
-//   reset(_ path: String?) - Reset a parameter or the whole parameter set
+//   reset(_ path: String?) - Reset a parameter or the whole parameterset
 //      to it's initial value(s)
 //
-//   apply(_ path: String?) - Copy a parameter or the whole parameter set
+//   apply(_ path: String?) - Copy a parameter or the whole parameterset
 //      from .current to .previous
 //
 //   undo(_ path: String?) - Copy a parameter or the whole parameter set
 //      from .previous to .current
 //
-//   addSettings(_ initialValues: DictPar) - Add new parameters to parameter set.
+//   addSettings(_ initialValues: DictPar) - Add new parameters to parameterset.
 //      New parameters are merged with dictionaries .current, .previous, .initial
 //
-//   get<T>(_ path: String, default: T = nil) - Return parameter value
+// Parameter values can be read or set by using subscripts.
 //
-//   set<T>(_ path: String, value: T) - Create or update a parameter value
-//
-// Accessing parameter values by subscripts:
+// Example: Read a parameter value
 //
 //   let value: T = parameterSet[path: String, default: T? = nil]
 //
 // Reading a parameter value will never return nil. If no default value is
-// specified, the default value of the destination type is returned (i.e. 0 or "0").
+// specified and the path exists, the initial value of a parameter is returned.
+// If the path doesn't exist, the default value of the castable type is returned.
+//
+// Example: Set a parameter value
 //
 //   parameterSet[path: String] = newValue
 //
-// If an element exists, newValue is casted to the type of the element.
+// If an element exists and newValue is castable to the type of the element,
+// newValue is assigned to the element. If newValue is not castable to the type
+// of an existing element, nothing happens.
 // If an element doesn't exist, a new element with type of newValue is created.
 //
 
-import Foundation
-
-struct ParameterSet : Castable {
+struct ParameterSet : Castable, Codable {
+    
+    //
+    // Make ParameterSet conform to protocol Castable
+    //
     
     // Default value is an empty parameterset
-    static var defaultValue: ParameterSet {
-        return ParameterSet([:])
-    }
+    static var defaultValue: ParameterSet { ParameterSet([:]) }
     
     /// Check if value is castable to ParameterSet
-    static func isCastable<T>(_ value: T) -> Bool {
-        return value is ParameterSet
+    func isCastable<T>(from: T) -> Bool {
+        return from is ParameterSet || from is DictAny
     }
     
-    /// A castable type cannot be casted to type ParameterSet.
-    /// If T is not of type ParameterSet, the default value (empty ParameterSet) is returned
-    static func cast<T>(_ value: T) -> (any Castable) where T : Castable {
-        if let v = value as? ParameterSet {
-            return v
+    static func cast<T>(from: T) -> (any Castable) where T : Castable {
+        switch from {
+            case let v as ParameterSet: return v
+            case let v as DictAny: return ParameterSet(v)
+            default: return defaultValue
         }
-        
-        return defaultValue
     }
     
     /// Compare 2 parametersets
@@ -82,19 +141,60 @@ struct ParameterSet : Castable {
         return NSDictionary(dictionary: lhs.current).isEqual(to: NSDictionary(dictionary: rhs.current))
     }
     
-    /// Compare current parameterset with a castable value
-    func compareWith<T>(_ value: T) -> Bool where T: Castable {
-        if let v = value as? ParameterSet {
-            return self == v
-        }
-        
-        return false
+    //
+    // Make ParameterSet conform to Codable. Needs JEncodeDecode
+    //
+    
+    // List elements to be encoded / decoded
+    enum CodingKeys : String, CodingKey {
+        case current
     }
+    
+    /// Decode from JSON data
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: JSONCodingKeys.self)
+        current  = try container.decode(DictAny.self)
+        previous = current
+        initial  = current
+    }
+    
+    /// Encode to JSON data
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: JSONCodingKeys.self)
+        try container.encode(current)
+    }
+    
+    //
+    // Implementation of ParameterSet
+    //
     
     // Dictionaries containing parameter values
     var current: DictAny
     var previous: DictAny
     var initial: DictAny
+    
+    /// Convert parameters to JSON
+    var jsonString: String {
+        do {
+            let s = try JSONEncoder().encode(self)
+            return String(data: s, encoding: .utf8) ?? ""
+        }
+        catch {
+            return ""
+        }
+    }
+    
+    /// Convert JSON string to parameterset (DictAny)
+    mutating func fromJSON(_ jsonString: String) -> Bool {
+        guard let data = jsonString.data(using: .utf8) else { return false }
+        do {
+            self = try JSONDecoder().decode(ParameterSet.self, from: data)
+            return true
+        }
+        catch {
+            return false
+        }
+    }
     
     /// Initialize parameter set with dictionary of type DictPar
     init(_ initialSettings: DictAny = [:]) {
@@ -140,136 +240,26 @@ struct ParameterSet : Castable {
         }
     }
 
-    /// Return parameter value
-    ///
-    /// path - Hierarchical dictionary key. Keys/subkeys are separated by '.'
-    ///
-    /// default - Value to be returned if key doesn't exist or value is nil.
-    ///    If default is nil, the default value of the destination data type
-    ///    is returned. Returned value is never nil!
-    ///
-    func get<T>(_ path: String, default def: T = T.defaultValue) -> T where T: Castable {
-        print("  ParameterSet get \(path) default \(def)")
-        /*
-        if let val = anyDict[keyPath: path, default: def] {
-            if let cval = val as? any Castable {
-                return T.cast(cval) as! T
-            }
-        }
-         */
-        // Split path into segments
-        let segs = path.components(separatedBy: ".")
-        
-        // Empty path is not allowed
-        guard segs.count > 0 && segs[0] != "" else { return def }
-        
-        if current.keys.contains(segs[0]) {
-            // First segment key exists
-            if segs.count == 1 {
-                // Last/only one segment. Return element value
-                return current[path: segs[0], default: def]
-            }
-            else {
-                // More than 1 segment left in path
-                if let v = current[segs[0]] as? ParameterSet {
-                    // If element of first segment is a ParameterSet, recursively call get() with rest of path
-                    let newPath = segs.dropFirst().joined(separator: ".")
-                    return v.get(newPath, default: def)
-                }
-                else {
-                    // Other types (i.e. sub-dictionaries) are not yet supported
-                    return def
-                }
-            }
-        }
-        
-        return def
-    }
-
-    /// Set parameter value
-    ///
-    /// path - Hierarchical dictionary key. Keys/subkeys are separated by '.'
-    ///    Each segment of the path except of the last one must exist.
-    /// value - New parameter value. If path exists, value is casted to the
-    ///    type of the existing element. Otherwise a new element is created.
-    ///
-    /// Example: Create and access a hierarchical paramterset
-    ///
-    /// let parset = ParameterSet(["a": 1, "b:" 0])
-    ///
-    /// This won't work: parset.set("c.x", 10)
-    ///
-    /// The sub-parameterset must exist before it can be accessed. So first
-    /// we need to add the new sub-parameterset as element "c":
-    ///
-    /// parset.set("c", ParameterSet(["x": 10, "y": 20])
-    ///
-    /// Now we can change element "x" of sub-parameterset "c":
-    ///
-    /// parset.set("c.x", 100)
-    ///
-    /// Or we can add new elements to sub-parameterset "c":
-    ///
-    /// parset.set("c.z", 300)
-    ///
-    mutating func set<T>(_ path: String, _ value: T) where T: Castable {
-        print("  ParameterSet set \(path) \(value)")
-        
-        // Split path into segments
-        let segs = path.components(separatedBy: ".")
-
-        // Empty path is not allowed
-        guard segs.count > 0 && segs[0] != "" else { return }
-        
-        if segs.count == 1 {
-            // Last segment
-            if current.keys.contains(segs[0]) {
-                // Save current value and set element to new value by using DictPar subscript
-                previous[segs[0]] = current[segs[0]]
-                current[path: segs[0]] = value
-            }
-            else {
-                // Add a new parameter
-                previous[segs[0]] = value
-                current[segs[0]]  = value
-                initial[segs[0]]  = value
-            }
-        }
-        else {
-            // More than 1 segment left in path
-            if current.keys.contains(segs[0]) {
-                // First segment key exists
-                if var v = current[segs[0]] as? ParameterSet {
-                    // If element of first segment is a ParameterSet, recursively call set() with rest of path
-                    let newPath = segs.dropFirst().joined(separator: ".")
-                    v.set(newPath, value)
-                    current[segs[0]] = v
-                }
-                else {
-                    // If number of segements is > 1, the element of the first segment key must be ParameterSet
-                    return
-                }
-            }
-            else {
-                // First segment key doesn't exist. Create an empty ParameterSet value and assign it to segs[0]
-                let newPath = segs.dropFirst().joined(separator: ".")
-                var ps = ParameterSet()
-                ps.set(newPath, value)
-                current[segs[0]] = ps
-            }
-        }
-    }
-    
     /// Get or set parameter value identified by path string subscript
-    subscript<T>(path: String, default def: T) -> T where T: Castable {
+    subscript<T>(path: String, default def: T? = nil) -> T where T: Castable {
         get {
-            print("  ParameterSet subscript get \(path) default \(def)")
-            return current[path: path, default: def]
+            let defValue: T = def ?? T.defaultValue
+            print("  ParameterSet subscript get \(path) default \(defValue)")
+
+            if current.pathExists(path) {
+                // Path exists => return current value
+                return current[path: path, default: defValue]
+            }
+            else {
+                // Path doesn't exist => return initial value
+                return initial[path: path, default: defValue]
+            }
         }
         set {
             print("  ParameterSet subscript set \(path) \(newValue)")
             if current.pathExists(path) {
-                previous[path: path] = current[path: path, default: def]
+                // Path exists, save current value to previous dictionary
+                previous[path: path] = current[path: path, default: T.defaultValue]
                 current[path: path] = newValue
             }
             else {
@@ -279,5 +269,5 @@ struct ParameterSet : Castable {
             }
         }
     }
-
+    
 }

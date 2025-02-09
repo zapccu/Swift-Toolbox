@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		43D7B01E2D5667040081FED2 /* JEncodeDecode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43D7B01D2D5667040081FED2 /* JEncodeDecode.swift */; };
 		43EAB1612D4537EC0051E352 /* DictionaryPath.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43123F662CF3298F009BFB34 /* DictionaryPath.swift */; };
 		43EAB1622D4537F30051E352 /* ParameterSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43B4D1AD2CF32F1900DBD934 /* ParameterSet.swift */; };
 		43EAB1642D45430B0051E352 /* CastableNumber.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43EAB1632D4543010051E352 /* CastableNumber.swift */; };
@@ -28,6 +29,7 @@
 		3F16704C2D4512AC0025DE40 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 		43123F662CF3298F009BFB34 /* DictionaryPath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryPath.swift; sourceTree = "<group>"; };
 		43B4D1AD2CF32F1900DBD934 /* ParameterSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParameterSet.swift; sourceTree = "<group>"; };
+		43D7B01D2D5667040081FED2 /* JEncodeDecode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JEncodeDecode.swift; sourceTree = "<group>"; };
 		43EAB1592D45379F0051E352 /* Toolbox-Demo */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "Toolbox-Demo"; sourceTree = BUILT_PRODUCTS_DIR; };
 		43EAB1632D4543010051E352 /* CastableNumber.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CastableNumber.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -58,6 +60,7 @@
 				43123F662CF3298F009BFB34 /* DictionaryPath.swift */,
 				43EAB1632D4543010051E352 /* CastableNumber.swift */,
 				43B4D1AD2CF32F1900DBD934 /* ParameterSet.swift */,
+				43D7B01D2D5667040081FED2 /* JEncodeDecode.swift */,
 				43EAB15B2D45379F0051E352 /* Toolbox-Demo */,
 				43EAB15A2D45379F0051E352 /* Products */,
 			);
@@ -136,6 +139,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				43EAB1612D4537EC0051E352 /* DictionaryPath.swift in Sources */,
+				43D7B01E2D5667040081FED2 /* JEncodeDecode.swift in Sources */,
 				43EAB1622D4537F30051E352 /* ParameterSet.swift in Sources */,
 				43EAB1642D45430B0051E352 /* CastableNumber.swift in Sources */,
 			);
