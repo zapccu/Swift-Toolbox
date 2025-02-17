@@ -10,7 +10,8 @@
 // dictionary hierarchies by specifying a path.
 //
 // A path is a string where the segments (representing the dictionary levels) are
-// seperated by a ".".
+// seperated by a ".". In a dictionary subscript a path must be specified with
+// label 'keyPath'.
 //
 // Example:
 //
@@ -18,31 +19,33 @@
 //    "a": 1,
 //    "b": 2,
 //    "c:" [
-//       "d:" 3
+//       "d:" Int(3),
+//       "e": 1.5
 //    ]
 //
-// let x: Int = myDict[path: "c.d", default: 0]         // Read a castable Int value
-// let y: Double = myDict[path: "c.d", default: 0.0]    // Read an Int value and cast it to Double
+// let a = myDict[keyPath: "a"] as? Int ?? 0
+// let d = myDict[keyPath: "c.d", default: 0] as? Int ?? 0
+// let e = myDict[keyPath: "c.e", default: 0.0] as? Double ?? 0.0
 //
-// myDict[path: "c.d"] = 10                             // Assign Int
-// myDict[path: "c.d"] = Complex(1.0)                   // Will fail if Complex is not castable
+// myDict[keyPath: "c.d"] = 10
+// myDict[keyPath: "c.d"] = 10.0        // Type is changed to Double
 //
-// myDict[path: "c.e"] = 1.5                            // Create a new entry of type Double
+// myDict[keyPath: "x.y"] = Int(300)    // Add new subdictionary x with element y
 //
-// if let a = myDict[keyPath: "a"] { ... }              // Read value of type Any?
+// myDict[keyPath: "c.d"] = nil         // Delete element d in subdictionary c
 //
 
 import Foundation
 
 typealias DictAny = [String: Any]
 
+/// Compare 2 dictionaries
+func == (lhs: DictAny, rhs: DictAny) -> Bool {
+    return NSDictionary(dictionary: lhs).isEqual(to: NSDictionary(dictionary: rhs))
+}
+
 extension Dictionary where Key == String {
       
-    /// Compare 2 dictionaries
-    static func == (lhs: DictAny, rhs: DictAny) -> Bool {
-        return NSDictionary(dictionary: lhs).isEqual(to: NSDictionary(dictionary: rhs))
-    }
-    
     /// Check if path exists
     func pathExists(_ path: String) -> Bool {
         let segs = path.components(separatedBy: ".")
@@ -50,9 +53,11 @@ extension Dictionary where Key == String {
         guard segs.count > 0 && segs[0] != "" else { return false }
 
         if segs.count == 1 {
+            // Reached last segment
             return self.keys.contains(Key(segs[0]))
         }
         else if let subDict = self[segs[0]] as? DictAny {
+            // Current element is sub-dictionary. Recursively call function with remaining path
             let newPath = segs.dropFirst().joined(separator: ".")
             return subDict.pathExists(newPath)
         }
@@ -69,12 +74,14 @@ extension Dictionary where Key == String {
         get {
             let segs = keyPath.components(separatedBy: ".")
             
-            // Prevent an empty key
-            guard segs.count > 0 && segs[0] != "" && self.keys.contains(segs[0]) else { return def }
+            // If key is empty return dictionary
+            guard segs.count > 0 && segs[0] != "" else { return self }
             
             let key = Key(segs[0])
             if segs.count == 1 {
-                return self[key] ?? def
+                if self.keys.contains(key) {
+                    return self[key]
+                }
             }
             else if let subDict = self[key] as? DictAny {
                 let newPath = segs.dropFirst().joined(separator: ".")
@@ -93,87 +100,38 @@ extension Dictionary where Key == String {
             
             if segs.count == 1 {
                 // Reached last element in path
-                self[key] = newValue as? Value
+                if newValue == nil {
+                    // Delete element
+                    self[key] = nil
+                }
+                else if newValue is Value {
+                    self[key] = (newValue! as! Value)
+                }
             }
             else {
                 let newPath = segs.dropFirst().joined(separator: ".")
+                
                 if self.keys.contains(key) {
+                    // Element exists
                     if var subDict = self[key] as? DictAny {
+                        // Element exists and is a dictionary
                         subDict[keyPath: newPath] = newValue
-                        self[key] = subDict as? Value
+                        self[key] = (subDict as! Value)
                     }
                     else {
+                        // Element exists, but is not a dictionary
                         return
                     }
                 }
                 else {
+                    // Element doesn't exist. Create a new sub-dictionary
                     var subDict: [Key: Any] = [:]
                     subDict[keyPath: newPath] = newValue
-                    self[key] = subDict as? Value
+                    self[key] = (subDict as! Value)
                 }
             }
         }
     }
-    
-    /// Convert dictionary to JSON
-    /// 
-    /// Returns empty String on error
-    var jsonString: String {
-        guard let data = try? JSONSerialization.data(withJSONObject: self, options: [.prettyPrinted]),
-              let string = String(data: data, encoding: .utf8)
-        else { return "" }
-        return string
-    }
-    
-    /// Convert dictionary to JSON string
-    var toJSON: String {
-        var str = ""
-        
-        for (k,v) in self {
-            if str != "" { str += ",\n\"\(k)\":" }
-            
-            switch v {
-                case let v as DictAny: str += v.toJSON
-                case let v as UInt: str += String(v)
-                case let v as Int: str += String(v)
-                case let v as Float: str += String(v)
-                case let v as Double: str += String(v)
-                case let v as String: str += "\"\(v)\""
-                default: break
-            }
-        }
-        
-        return "{\n\(str)\n}"
-    }
-
-    /// Create dictionary from JSON string
-    ///
-    /// Creates an empty dictionary if input string is not convertible
-    init(jsonString: String) {
-        guard let data = jsonString.data(using: .utf8) else {
-            self = [:]
-            return
-        }
-        do {
-            self = try JSONSerialization.jsonObject(with: data, options: []) as! [String: Value]
-        }
-        catch {
-            self = [:]
-        }
-    }
 
 }
 
-func expect<T,C>(_ value: T, _ current: C, _ varname: String) where T: Equatable, C: Equatable {
-    if (T.self == C.self) {
-        if current as! T != value {
-            print("ERR: Expected value \(value) for \(varname), but got \(current)")
-        }
-        else {
-            print("OK: \(varname) = \(current), type = \(type(of: current))")
-        }
-    }
-    else {
-        print("ERR: Expected type \(T.self) for \(varname), but got \(C.self)")
-    }
-}

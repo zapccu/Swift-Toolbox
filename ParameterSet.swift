@@ -11,61 +11,14 @@
 
 import Foundation
 
-//
-// Extend Dictionary to support Castable element values
-//
 
-extension Dictionary where Key == String {
-    
-    /// Get or set a castable value identified by parameter path
-    ///
-    /// Getting a value for a non existing element returns ...
-    ///    ... default if parameter default is specified
-    ///    ... T.defaultValue if no default is specified
-    ///
-    /// Getting a value for an existing but not castable element returns T.default
-    ///
-    /// Setting a value fails if ...
-    ///    ... path addresses sub-dictionaries and type of a path segment is not DictAny
-    ///    ... element exists but new value cannot be casted to type of existing element
-    ///
-    /// When setting a value for non-existing sub-dictionaries or elements, sub-dictionaries
-    /// and elements are created.
-    ///
-    subscript<T>(path path: String, default def: T = T.defaultValue) -> T where T: Castable {
-        get {
-            if let v = self[keyPath: path, default: def] as? any Castable {
-                print("  \(path) is \(type(of: v))")
-                // Cast value of element to destination type
-                if T.defaultValue.isCastable(from: v) {
-                    return T.cast(from: v) as! T
-                }
-            }
-            
-            return def
-        }
-        set {
-            if pathExists(path) {
-                if let v = self[keyPath: path] as? any Castable, v.isCastable(from: newValue) {
-                    // Element exists and new value is castable
-                    let t = type(of: v)
-                    self[keyPath: path] = t.cast(from: newValue)
-                }
-            }
-            else {
-                // Element doesn't exist. Create a new entry
-                self[keyPath: path] = newValue
-            }
-        }
-    }
-}
 
 //
 // ParameterSet structure
 //
 // A ParameterSet contains 3 dictionaries for current, previous and initial
 // parameter values which can be used to manage application parameters.
-// The dictionaries are of type <String, Any> / DictAny
+// The dictionaries are of type <String, Any> / type alias DictAny.
 //
 //   .current - Dictionary with current parameter values. When a parameter
 //      value is changed in this dictionary, the old value is stored in
@@ -91,27 +44,37 @@ extension Dictionary where Key == String {
 //   undo(_ path: String?) - Copy a parameter or the whole parameter set
 //      from .previous to .current
 //
-//   addSettings(_ initialValues: DictPar) - Add new parameters to parameterset.
+//   mergeSettings(_ initialValues: DictPar) - Add new parameters to parameterset.
 //      New parameters are merged with dictionaries .current, .previous, .initial
+//
+//   addSetting(_ path: String, setting: T) - Add new parameter to parameterset.
+//      Existing parameter is replaced by the new one.
+//
+//   deleteSetting(_ path: String) - Delete a parameter from parameterset.
 //
 // Parameter values can be read or set by using subscripts.
 //
-// Example: Read a parameter value
+// Reading parameter values
+//
+// Example:
 //
 //   let value: T = parameterSet[path: String, default: T? = nil]
 //
 // Reading a parameter value will never return nil. If no default value is
-// specified and the path exists, the initial value of a parameter is returned.
+// specified (default is nil) and path exists but parameter doesn't exist, the
+// initial value of a parameter is returned.
 // If the path doesn't exist, the default value of the castable type is returned.
 //
-// Example: Set a parameter value
+// Setting parameter values
+//
+// Example:
 //
 //   parameterSet[path: String] = newValue
 //
 // If an element exists and newValue is castable to the type of the element,
 // newValue is assigned to the element. If newValue is not castable to the type
 // of an existing element, nothing happens.
-// If an element doesn't exist, a new element with type of newValue is created.
+// If an element doesn't exist, assignment fails.
 //
 
 struct ParameterSet : Castable, Codable {
@@ -128,6 +91,7 @@ struct ParameterSet : Castable, Codable {
         return from is ParameterSet || from is DictAny
     }
     
+    /// Cast to ParameterSet
     static func cast<T>(from: T) -> (any Castable) where T : Castable {
         switch from {
             case let v as ParameterSet: return v
@@ -150,12 +114,43 @@ struct ParameterSet : Castable, Codable {
         case current
     }
     
-    /// Decode from JSON data
+    /// Cast dictionary elements from specified dictionary
+    /// Elements only existing in source dictionary are ignored
+    mutating func cast(fromDict: DictAny) {
+        print("Paramset.cast(fromDict:)")
+        for (key, value) in fromDict {
+            if initial.pathExists(key) {
+                if let d = value as? DictAny, var e = initial[key] as? DictAny {
+                    // If existing element is a dictionary, recursively call cast()
+                    e.cast(fromDict: d)
+                    initial[key] = e
+                }
+                else if let v = value as? any Castable, let e = initial[key] as? any Castable, e.isCastable(from: v) {
+                    // If existing element and source element are castable values, cast source to destination element
+                    initial[key] = type(of: e).cast(from: v)
+                }
+                else {
+                    print("Decode: Ignoring element \(key) with value \(value)")
+                }
+            }
+            else {
+                print("Decode: Path \(key) does not exist in initial dictionary")
+            }
+        }
+    }
+    
+    /// Create and initialize a new ParameterSet object from JSON data
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: JSONCodingKeys.self)
-        current  = try container.decode(DictAny.self)
-        previous = current
-        initial  = current
+
+        do {
+            initial = try container.decode(DictAny.self)
+            current = initial
+            previous = initial
+        }
+        catch {
+            print("Decoding error: \(error)")
+        }
     }
     
     /// Encode to JSON data
@@ -169,14 +164,19 @@ struct ParameterSet : Castable, Codable {
     //
     
     // Dictionaries containing parameter values
-    var current: DictAny
-    var previous: DictAny
-    var initial: DictAny
+    var current: DictAny = [:]        // Current values
+    var previous: DictAny = [:]       // Previous values
+    var initial: DictAny = [:]        // Initial values
     
-    /// Convert parameters to JSON
-    var jsonString: String {
+    /// Convert parameters to JSON. Return empty string on error
+    var jsonString: String { return toJSON(prettyPrinted: false) }
+    
+    // Convert parameters to (optionally) formatted JSON
+    func toJSON(prettyPrinted: Bool = true) -> String {
         do {
-            let s = try JSONEncoder().encode(self)
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = prettyPrinted ? [.prettyPrinted] : []
+            let s = try encoder.encode(self)
             return String(data: s, encoding: .utf8) ?? ""
         }
         catch {
@@ -188,7 +188,10 @@ struct ParameterSet : Castable, Codable {
     mutating func fromJSON(_ jsonString: String) -> Bool {
         guard let data = jsonString.data(using: .utf8) else { return false }
         do {
-            self = try JSONDecoder().decode(ParameterSet.self, from: data)
+            let newParameterset = try JSONDecoder().decode(ParameterSet.self, from: data)
+            cast(fromDict: newParameterset.initial)
+            previous = current
+            current = initial
             return true
         }
         catch {
@@ -204,10 +207,24 @@ struct ParameterSet : Castable, Codable {
     }
     
     /// Add dictionary of type DictPar with new settings to parameter set
-    mutating func addSettings(_ initialSettings: DictAny) {
+    mutating func mergeSettings(_ initialSettings: DictAny) {
         current.merge(initialSettings)  { (_, new) in new }
         previous.merge(initialSettings) { (_, new) in new }
         initial.merge(initialSettings)  { (_, new) in new }
+    }
+    
+    /// Add parameter of a castable type to parameter set
+    mutating func addSetting<T: Castable>(_ path: String, _ setting: T) {
+        initial[path: path]  = setting
+        previous[path: path] = setting
+        current[path: path]  = setting
+    }
+    
+    /// Delete parameter from parameter set
+    mutating func deleteSetting(_ path: String) {
+        current.delete(path)
+        previous.delete(path)
+        initial.delete(path)
     }
     
     /// Set parameter or parameter set to initial settings
@@ -244,7 +261,6 @@ struct ParameterSet : Castable, Codable {
     subscript<T>(path: String, default def: T? = nil) -> T where T: Castable {
         get {
             let defValue: T = def ?? T.defaultValue
-            print("  ParameterSet subscript get \(path) default \(defValue)")
 
             if current.pathExists(path) {
                 // Path exists => return current value
@@ -256,16 +272,18 @@ struct ParameterSet : Castable, Codable {
             }
         }
         set {
-            print("  ParameterSet subscript set \(path) \(newValue)")
             if current.pathExists(path) {
                 // Path exists, save current value to previous dictionary
                 previous[path: path] = current[path: path, default: T.defaultValue]
                 current[path: path] = newValue
             }
-            else {
-                current[path: path]  = newValue
+            else if initial.pathExists(path) {
+                current[path: path] = newValue
                 previous[path: path] = newValue
-                initial[path: path]  = newValue
+            }
+            else {
+                // Assigning values is only allowed for existing elements
+                return
             }
         }
     }
