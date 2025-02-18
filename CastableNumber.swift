@@ -45,9 +45,9 @@ extension Bool: Castable {
     
     func isCastable<T>(from: T) -> Bool {
         switch from {
-        case let v as Bool:   return true
-        case let v as Int:    return true
-        case let v as UInt:   return true
+        case _ as Bool:   return true
+        case _ as Int:    return true
+        case _ as UInt:   return true
         case let v as String: return ["true", "false", "1", "0"].contains(v.lowercased()) ? true : false
         default:              return false
         }

@@ -206,6 +206,17 @@ struct ParameterSet : Castable, Codable {
         initial  = initialSettings
     }
     
+    /// Initialize parameter set with JSON string
+    init(_ jsonString: String) {
+        guard let data = jsonString.data(using: .utf8) else { return }
+        do {
+            self = try JSONDecoder().decode(ParameterSet.self, from: data)
+        }
+        catch {
+            return
+        }
+    }
+    
     /// Add dictionary of type DictPar with new settings to parameter set
     mutating func mergeSettings(_ initialSettings: DictAny) {
         current.merge(initialSettings)  { (_, new) in new }
