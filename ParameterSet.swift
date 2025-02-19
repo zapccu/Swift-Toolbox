@@ -87,7 +87,7 @@ struct ParameterSet : Castable, Codable {
     static var defaultValue: ParameterSet { ParameterSet([:]) }
     
     /// Check if value is castable to ParameterSet
-    func isCastable<T>(from: T) -> Bool {
+    static func isCastable<T>(from: T) -> Bool {
         return from is ParameterSet || from is DictAny
     }
     
@@ -125,7 +125,7 @@ struct ParameterSet : Castable, Codable {
                     e.cast(fromDict: d)
                     initial[key] = e
                 }
-                else if let v = value as? any Castable, let e = initial[key] as? any Castable, e.isCastable(from: v) {
+                else if let v = value as? any Castable, let e = initial[key] as? any Castable, type(of: e).isCastable(from: v) {
                     // If existing element and source element are castable values, cast source to destination element
                     initial[key] = type(of: e).cast(from: v)
                 }

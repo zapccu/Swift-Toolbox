@@ -11,7 +11,7 @@
 // Enum custom type
 //
 
-enum DrawMode: Int {
+enum DrawMode: Int, Castable, Codable {
     case none = 0
     case solid = 1
     case dashed = 2
@@ -21,13 +21,9 @@ enum DrawMode: Int {
     
     // Define string aliases to make JSON encoded values more readable
     static let names: [String] = ["none", "solid", "dashed"]
-}
-
-// Make custom type conform to protocols Castable and Codable
-extension DrawMode : Castable, Codable {
     
     /// Check if value of type T could be casted to DrawMode
-    func isCastable<T>(from: T) -> Bool {
+    static func isCastable<T>(from: T) -> Bool {
         var value: Int
         
         switch from {
@@ -66,3 +62,19 @@ extension DrawMode : Castable, Codable {
         try container.encode(DrawMode.names[rawValue])
     }
 }
+
+
+//
+// Another custom type which is stored as rawValue
+//
+
+/*
+enum Orientation: Int, Castable {
+    case portrait = 0
+    case landscapeLeft = 1
+    case landscapeRight = 2
+    
+    
+}
+
+*/

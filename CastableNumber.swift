@@ -13,7 +13,7 @@ protocol Castable: Equatable, Any {
     
     /// Check if value of type T is castable to current value
     /// Example: Int.isCastable(5.0)
-    func isCastable<T>(from: T) -> Bool
+    static func isCastable<T>(from: T) -> Bool
 
     /// Cast a numeric value from type T to a type conform to protocol Castable
     /// If casting is not possible, defaultValue must be returned.
@@ -31,7 +31,7 @@ protocol Castable: Equatable, Any {
 /// For exact matching without casting use operator ==
 ///
 func compare<L,R>(_ lhs: L, _ rhs: R) -> Bool where L: Castable, R: Castable {
-    return lhs.isCastable(from: rhs) ? L.cast(from: rhs) as! L == lhs : false
+    return L.isCastable(from: rhs) ? L.cast(from: rhs) as! L == lhs : false
 }
 
 //
@@ -43,7 +43,7 @@ extension Bool: Castable {
     
     static var defaultValue: Bool { false }
     
-    func isCastable<T>(from: T) -> Bool {
+    static func isCastable<T>(from: T) -> Bool {
         switch from {
         case _ as Bool:   return true
         case _ as Int:    return true
@@ -68,7 +68,7 @@ extension Int: Castable {
     
     static var defaultValue: Int { 0 }
     
-    func isCastable<T>(from: T) -> Bool {
+    static func isCastable<T>(from: T) -> Bool {
         return from is Bool || from is Int || from is UInt || from is Float || from is Double || (from is String && Double(from as! String) != nil)
     }
     
@@ -89,7 +89,7 @@ extension UInt: Castable {
     
     static var defaultValue: UInt { 0 }
 
-    func isCastable<T>(from: T) -> Bool {
+    static func isCastable<T>(from: T) -> Bool {
         return from is Bool || from is UInt || from is Int || from is Float || from is Double || (from is String && Double(from as! String) != nil)
     }
     
@@ -110,7 +110,7 @@ extension Float: Castable {
     
     static var defaultValue: Float { Float(0.0) }
 
-    func isCastable<T>(from: T) -> Bool {
+    static func isCastable<T>(from: T) -> Bool {
         return from is UInt || from is Int || from is Float || from is Double || (from is String && Double(from as! String) != nil)
     }
     
@@ -130,7 +130,7 @@ extension Double: Castable {
     
     static var defaultValue: Double { Double(0.0) }
     
-    func isCastable<T>(from: T) -> Bool {
+    static func isCastable<T>(from: T) -> Bool {
         return from is UInt || from is Int || from is Float || from is Double || (from is String && Double(from as! String) != nil)
     }
     
@@ -150,7 +150,7 @@ extension String: Castable {
     
     static var defaultValue: String { return "" }
     
-    func isCastable<T>(from: T) -> Bool {
+    static func isCastable<T>(from: T) -> Bool {
         return from is Bool || from is UInt || from is Int || from is Float || from is Double || from is String
     }
     
@@ -203,7 +203,7 @@ extension Dictionary where Key == String {
                     e.cast(fromDict: d)
                     self[key] = (e as! Value)
                 }
-                else if let v = value as? any Castable, let e = self[key] as? any Castable, e.isCastable(from: v) {
+                else if let v = value as? any Castable, let e = self[key] as? any Castable, type(of: e).isCastable(from: v) {
                     // If existing element and source element are castable values, cast source to destination element
                     self[key] = (type(of: e).cast(from: v) as! Value)
                 }
@@ -253,7 +253,7 @@ extension Dictionary where Key == String {
             
             if segs.count == 1 {
                 // Reached last element in path
-                if let v = self[key] as? any Castable, T.defaultValue.isCastable(from: v) {
+                if let v = self[key] as? any Castable, T.isCastable(from: v) {
                     // Cast element value to desired type
                     return T.cast(from: v) as! T
                 }
@@ -280,7 +280,7 @@ extension Dictionary where Key == String {
             if segs.count == 1 {
                 // Reached last element in path
                 if self.keys.contains(key) {
-                    if let v = self[path] as? any Castable, v.isCastable(from: newValue) {
+                    if let v = self[path] as? any Castable, type(of: v).isCastable(from: newValue) {
                         // Element exists and new value is castable
                         // Cast new value to type of existing element
                         let t = type(of: v)
