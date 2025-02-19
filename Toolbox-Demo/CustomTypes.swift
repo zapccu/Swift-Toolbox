@@ -26,6 +26,7 @@ enum DrawMode: Int, Castable, Codable {
     
     /// Check if value of type T could be casted to DrawMode
     static func isCastable<T>(from: T) -> Bool {
+        if from is DrawMode { return true }
         if Int.isCastable(from: from), let v = from as? any Castable {
             return values.contains(Int.cast(from: v) as! Int)
         }
@@ -36,6 +37,7 @@ enum DrawMode: Int, Castable, Codable {
     }
     
     static func cast<T>(from: T) -> (any Castable) where T : Castable {
+        if from is DrawMode { return from }
         if Int.isCastable(from: from) {
             return DrawMode(rawValue: Int.cast(from: from) as! Int) ?? defaultValue
         }
@@ -71,6 +73,7 @@ enum Orientation: Int, Castable {
     static let values: [Int] = [0, 1, 2]
     
     static func isCastable<T>(from: T) -> Bool {
+        if from is Orientation { return true }
         if Int.isCastable(from: from), let v = from as? any Castable {
             return values.contains(Int.cast(from: v) as! Int)
         }
@@ -78,6 +81,7 @@ enum Orientation: Int, Castable {
     }
     
     static func cast<T>(from: T) -> (any Castable) where T : Castable {
+        if from is Orientation { return from }
         if Int.isCastable(from: from) {
             return Orientation(rawValue: Int.cast(from: from) as! Int) ?? defaultValue
         }

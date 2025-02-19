@@ -294,7 +294,8 @@ var myParameterset = ParameterSet([
     "par6": "1000.5",
     "par7": [
         "x": 1.5,
-        "y": Float(3.8)
+        "y": Float(3.8),
+        "z": "Test"
     ],
     "par9": DrawMode.solid,
     "par10": Orientation.landscapeRight.rawValue
