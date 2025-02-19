@@ -174,6 +174,7 @@ extension String: Castable {
 
 extension Dictionary where Key == String {
     
+    /*
     /// Get castable value
     func getValue<T>(path: String, default def: T) -> T where T: Castable {
         return self[path: path, default: def]
@@ -183,6 +184,7 @@ extension Dictionary where Key == String {
     mutating func setValue<T>(path: String, _ value: T) where T: Castable {
         self[path: path] = value
     }
+    */
     
     /// Delete a dictionary element
     mutating func delete(_ path: String) {

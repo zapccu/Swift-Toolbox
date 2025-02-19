@@ -29,6 +29,7 @@ func test<T>(_ expected: T, _ message: String, code: () -> any Castable) where T
     }
 }
 
+
 // =========================================================================
 //
 //  Demo / Test of Dictionary<String, Any> with subscript [keyPath: String]
@@ -294,7 +295,8 @@ var myParameterset = ParameterSet([
     "par7": [
         "x": 1.5,
         "y": Float(3.8)
-    ]
+    ],
+    "par9": DrawMode.solid
 ])
 
 print("Initial dictionary before parameterset tests:")
@@ -364,6 +366,11 @@ test("200", "\nAssign Int 200 to String 'par6' and read as String") {
     print("Verify 'par6'")
     let par6: String = myParameterset["par6"]
     return par6
+}
+
+test(DrawMode.solid, "\nRead DrawMode 'par9' with default = .none") {
+    let par9: DrawMode = myParameterset["par9", default: .none]
+    return par9
 }
 
 // Currently segmented path addressing of sub-parametersets is not supported
