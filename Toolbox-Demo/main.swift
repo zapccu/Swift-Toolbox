@@ -296,7 +296,8 @@ var myParameterset = ParameterSet([
         "x": 1.5,
         "y": Float(3.8)
     ],
-    "par9": DrawMode.solid
+    "par9": DrawMode.solid,
+    "par10": Orientation.landscapeRight.rawValue
 ])
 
 print("Initial dictionary before parameterset tests:")
@@ -371,6 +372,16 @@ test("200", "\nAssign Int 200 to String 'par6' and read as String") {
 test(DrawMode.solid, "\nRead DrawMode 'par9' with default = .none") {
     let par9: DrawMode = myParameterset["par9", default: .none]
     return par9
+}
+
+test(Orientation.landscapeRight.rawValue, "\nRead Orientation rawValue 'par10' with default = 0") {
+    let par10: Int = myParameterset["par10", default: Orientation.portrait.rawValue]
+    return par10
+}
+
+test(Orientation.landscapeRight, "\nRead Orientation 'par10' with default = .portrait") {
+    let par10: Orientation = Orientation(rawValue: myParameterset["par10", default: Orientation.portrait.rawValue])!
+    return par10
 }
 
 // Currently segmented path addressing of sub-parametersets is not supported

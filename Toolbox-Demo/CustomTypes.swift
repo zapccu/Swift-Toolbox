@@ -8,7 +8,9 @@
 //
 
 //
-// Enum custom type
+// Enum custom type to be used as ParameterSet value
+//
+// Must be conform to protocols Castable, Codable
 //
 
 enum DrawMode: Int, Castable, Codable {
@@ -24,37 +26,26 @@ enum DrawMode: Int, Castable, Codable {
     
     /// Check if value of type T could be casted to DrawMode
     static func isCastable<T>(from: T) -> Bool {
-        var value: Int
-        
-        switch from {
-        case _ as DrawMode:   return true
-        case let v as Int:    value = v
-        case _ as Bool:       return false
-        case let v as UInt:   value = Int(v)
-        case let v as Float:  value = Int(v)
-        case let v as Double: value = Int(v)
-        case let v as String: return DrawMode.names.contains(v)
-        default: return false
+        if Int.isCastable(from: from), let v = from as? any Castable {
+            return values.contains(Int.cast(from: v) as! Int)
         }
-        
-        return DrawMode.values.contains(value)
+        else if from is String {
+            return names.contains(from as! String)
+        }
+        return false
     }
     
     static func cast<T>(from: T) -> (any Castable) where T : Castable {
-        switch from {
-        case let v as DrawMode: return v
-        case let v as Int:      return DrawMode(rawValue: v) ?? defaultValue
-        case let v as UInt:     return DrawMode(rawValue: Int(v)) ?? defaultValue
-        case let v as Float:    return DrawMode(rawValue: Int(v)) ?? defaultValue
-        case let v as Double:   return DrawMode(rawValue: Int(v)) ?? defaultValue
-        case let v as String:   return DrawMode(rawValue: names.firstIndex(of: v) ?? 0) ?? defaultValue
-        default: return defaultValue
+        if Int.isCastable(from: from) {
+            return DrawMode(rawValue: Int.cast(from: from) as! Int) ?? defaultValue
         }
+        else if from is String {
+            return DrawMode(rawValue: names.firstIndex(of: from as! String) ?? 0) ?? defaultValue
+        }
+        return defaultValue
     }
     
-    static var defaultValue: DrawMode {
-        .none
-    }
+    static var defaultValue: DrawMode { .none }
     
     /// Put drawmode name into JSON instead of rawValue
     func encode(to encoder: any Encoder) throws {
@@ -67,14 +58,31 @@ enum DrawMode: Int, Castable, Codable {
 //
 // Another custom type which is stored as rawValue
 //
+// Conformity to Codable is not needed because parameter is stored as rawValue (Int)
+// which is already conform to Codable.
+//
 
-/*
 enum Orientation: Int, Castable {
+   
     case portrait = 0
     case landscapeLeft = 1
     case landscapeRight = 2
-    
-    
-}
 
-*/
+    static let values: [Int] = [0, 1, 2]
+    
+    static func isCastable<T>(from: T) -> Bool {
+        if Int.isCastable(from: from), let v = from as? any Castable {
+            return values.contains(Int.cast(from: v) as! Int)
+        }
+        return false
+    }
+    
+    static func cast<T>(from: T) -> (any Castable) where T : Castable {
+        if Int.isCastable(from: from) {
+            return Orientation(rawValue: Int.cast(from: from) as! Int) ?? defaultValue
+        }
+        return defaultValue
+    }
+    
+    static var defaultValue: Orientation { .portrait }
+}
