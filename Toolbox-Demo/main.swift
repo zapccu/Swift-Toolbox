@@ -284,13 +284,11 @@ var myParameterset = ParameterSet([
     "par1": Int(100),
     "par2": 100.0,
     "par3": "Hello World",
-    /*
-    "par4": ParameterSet(myDict),
     "par5": ParameterSet([
-        "x": 1,
-        "y": 2,
-        "z": 3
-    ]), */
+        "sx": 1,
+        "sy": 0.2,
+        "sz": 3
+    ]),
     "par6": "1000.5",
     "par7": [
         "x": 1.5,
@@ -370,16 +368,19 @@ test("200", "\nAssign Int 200 to String 'par6' and read as String") {
     return par6
 }
 
+// Read Enum Type with default
 test(DrawMode.solid, "\nRead DrawMode 'par9' with default = .none") {
     let par9: DrawMode = myParameterset["par9", default: .none]
     return par9
 }
 
+// Read raw value of Enum type with default
 test(Orientation.landscapeRight.rawValue, "\nRead Orientation rawValue 'par10' with default = 0") {
     let par10: Int = myParameterset["par10", default: Orientation.portrait.rawValue]
     return par10
 }
 
+// Read Enum type as raw value with default
 test(Orientation.landscapeRight, "\nRead Orientation 'par10' with default = .portrait") {
     let par10: Orientation = Orientation(rawValue: myParameterset["par10", default: Orientation.portrait.rawValue])!
     return par10
@@ -408,15 +409,21 @@ test(777, "\nAdd new element 'k' = 222 to non-existing sub dictionary 'par8'") {
     return k
 }
 
-/*
+test(7.5, "\nAssign Double 7.5 to sub dictionary 'par7', new element 'w'") {
+    myParameterset.addSetting("par7.w", 0.0)
+    myParameterset["par7.w"] = 7.5
+    print("Verifying 'par7.w'")
+    let w: Double = myParameterset["par7.w", default: 0.0]
+    return w
+}
 
-print("Assign Double 7.5 to new sub parameter set 'par5', element 'w'")
-myParameterset["par5.w"] = 7.5
-print("Verify 'par5.w'")
-let par5w: Double = myParameterset.get("par5.w", default: 0.0)
-print("par5.w: \(par5w) \(type(of: par5w))\n")
-
- */
+test(Float(9.9), "\nAssign Float 9.9 to new sub dictionary 'par4', new element 'abc'") {
+    myParameterset.addSetting("par4", ["abc": Float(0.0)])
+    myParameterset["par4.abc"] = Float(9.9)
+    print("Verifying 'par4.abc'")
+    let abc: Float = myParameterset["par4.abc", default: Float(0.0)]
+    return abc
+}
 
 print("\nResulting dictionary after castable tests:")
 dump(myParameterset.current)

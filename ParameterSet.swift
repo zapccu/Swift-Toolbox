@@ -231,6 +231,12 @@ struct ParameterSet : Castable, Codable {
         current[path: path]  = setting
     }
     
+    mutating func addSetting(_ path: String, _ setting: DictAny) {
+        initial[path: path]  = setting
+        previous[path: path] = setting
+        current[path: path]  = setting
+    }
+    
     /// Delete parameter from parameter set
     mutating func deleteSetting(_ path: String) {
         current.delete(path)

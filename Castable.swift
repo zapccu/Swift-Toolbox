@@ -139,7 +139,7 @@ extension Double: Castable {
             case let v as Double: return v
             case let v as Int:    return Double(v)
             case let v as UInt:   return Double(v)
-            case let v as Float:  return Int(v)
+            case let v as Float:  return Double(v)
             case let v as String where Double(v) != nil: return Double(v)!
             default: return defaultValue
         }
