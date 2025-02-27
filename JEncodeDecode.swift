@@ -4,15 +4,17 @@
 //
 //  Created by Dirk Braner on 07.02.25.
 //
+//  Adapted from:
+//
+//  Original: https://gist.github.com/loudmouth/332e8d89d8de2c1eaf81875cfcd22e24
+//  Adds encoding: https://github.com/3D4Medical/glTFSceneKit/blob/master/Sources/glTFSceneKit/GLTF/JSONCodingKeys.swift
+//  Adds fix for null inside arrays causing infinite loop: https://gist.github.com/loudmouth/332e8d89d8de2c1eaf81875cfcd22e24#gistcomment-2807855
+//
 
-//
-//
-// Adapted from:
-//
-// Original: https://gist.github.com/loudmouth/332e8d89d8de2c1eaf81875cfcd22e24
-// Adds encoding: https://github.com/3D4Medical/glTFSceneKit/blob/master/Sources/glTFSceneKit/GLTF/JSONCodingKeys.swift
-// Adds fix for null inside arrays causing infinite loop: https://gist.github.com/loudmouth/332e8d89d8de2c1eaf81875cfcd22e24#gistcomment-2807855
-//
+
+// --------------------------------------------------------
+//  JSONCodingKeys
+// --------------------------------------------------------
 
 struct JSONCodingKeys: CodingKey {
     var stringValue: String
@@ -29,11 +31,16 @@ struct JSONCodingKeys: CodingKey {
     }
 }
 
+// --------------------------------------------------------
+//  Decoding
+// --------------------------------------------------------
+
 //
-// Decoding
+// Extend KeyedDecodingContainer (dictionaries)
 //
 
 extension KeyedDecodingContainer {
+    
     func decode(_ type: [String: Any].Type, forKey key: K) throws -> [String: Any] {
         let container = try self.nestedContainer(keyedBy: JSONCodingKeys.self, forKey: key)
         return try container.decode(type)
@@ -48,6 +55,7 @@ extension KeyedDecodingContainer {
         var dictionary = [String: Any]()
         
         for key in allKeys {
+            print("KeyedDecodingContainer decode \(key.stringValue)")
             if let boolValue = try? decode(Bool.self, forKey: key) {
                 dictionary[key.stringValue] = boolValue
             } else if let stringValue = try? decode(String.self, forKey: key) {
@@ -57,6 +65,7 @@ extension KeyedDecodingContainer {
             } else if let doubleValue = try? decode(Double.self, forKey: key) {
                 dictionary[key.stringValue] = doubleValue
             } else if let nestedDictionary = try? decode([String: Any].self, forKey: key) {
+                print("KeyedDecodingContainer decode nestedDictionary \(key.stringValue)")
                 dictionary[key.stringValue] = nestedDictionary
             } else if let nestedArray = try? decode([Any].self, forKey: key) {
                 dictionary[key.stringValue] = nestedArray
@@ -65,6 +74,10 @@ extension KeyedDecodingContainer {
         return dictionary
     }
 }
+
+//
+// Extend UnkeyedDecondigContainer (arrays)
+//
 
 extension UnkeyedDecodingContainer {
     mutating func decode(_ type: [Any].Type) throws -> [Any] {
@@ -105,9 +118,8 @@ extension UnkeyedDecodingContainer {
 extension KeyedEncodingContainerProtocol where Key == JSONCodingKeys {
     
     mutating func encode(_ value: [String: Any]) throws {
-        print("encode [String : Any], type = \(type(of: value))")
         try value.forEach({ (key, value) in
-            print("  encode [String : Any], key = \(key), type = \(type(of: value))")
+            print("KeyedEncodingContainerProtocol JSONCodingKeys encode [String : Any], key = \(key), value = \(value), type = \(type(of: value))")
             let key = JSONCodingKeys(stringValue: key)
             switch value {
             case let value as any Codable:
@@ -140,7 +152,7 @@ extension KeyedEncodingContainerProtocol where Key == JSONCodingKeys {
 extension KeyedEncodingContainerProtocol {
     
     mutating func encode(_ value: [String: Any]?, forKey key: Key) throws {
-        print("encode [String : Any]?, type = \(type(of: value))")
+        print("KeyedEncodingContainerProtocol encode [String : Any]?, type = \(type(of: value))")
         if value != nil {
             var container = self.nestedContainer(keyedBy: JSONCodingKeys.self, forKey: key)
             try container.encode(value!)
@@ -179,7 +191,7 @@ extension UnkeyedEncodingContainer {
             case Optional<Any>.none:
                 try encodeNil()
             default:
-                print("encode [Any], type not supported")
+                print("UnkeyedEncodingContainer encode [Any], type not supported")
                 let keys = JSONCodingKeys(intValue: index).map({ [ $0 ] }) ?? []
                 throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: codingPath + keys, debugDescription: "Invalid JSON value"))
             }

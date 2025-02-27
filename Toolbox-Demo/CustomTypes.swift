@@ -13,33 +13,6 @@
 // Must be conform to protocols Castable, Codable
 //
 
-protocol CastableEnum : Castable, RawRepresentable {
-    static var values: [Int] { get }
-    static var names: [String] { get }
-}
-
-func isCastableToEnum<E,T>(enumType: E.Type, from: T) -> Bool where E: CastableEnum {
-    if from is E { return true }
-    if Int.isCastable(from: from), let v = from as? any Castable {
-        return E.values.contains(Int.cast(from: v) as! Int)
-    }
-    else if E.names.count > 0, from is String {
-        return E.names.contains(from as! String)
-    }
-    return false
-}
-
-func castToEnum<E,T>(enumType: E.Type, from: T) -> E where E: CastableEnum {
-    if from is E { return from as! E }
-    if let v = from as? any Castable, Int.isCastable(from: v) {
-        return E(rawValue: Int.cast(from: v) as! E.RawValue) ?? E.defaultValue
-    }
-    else if E.names.count > 0, from is String {
-        return E(rawValue: (E.names.firstIndex(of: from as! String) ?? 0) as! E.RawValue) ?? E.defaultValue
-    }
-    return E.defaultValue
-}
-
 enum DrawMode: Int, CastableEnum, Codable {
     case none = 0
     case solid = 1

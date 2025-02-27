@@ -106,7 +106,7 @@ struct ParameterSet : Castable, Codable {
     }
     
     //
-    // Make ParameterSet conform to Codable. Needs JEncodeDecode
+    // Make ParameterSet conform to protocol Codable. Needs JEncodeDecode
     //
     
     // List elements to be encoded / decoded
@@ -114,33 +114,9 @@ struct ParameterSet : Castable, Codable {
         case current
     }
     
-    /// Cast dictionary elements from specified dictionary
-    /// Elements only existing in source dictionary are ignored
-    mutating func cast(fromDict: DictAny) {
-        print("Paramset.cast(fromDict:)")
-        for (key, value) in fromDict {
-            if initial.pathExists(key) {
-                if let d = value as? DictAny, var e = initial[key] as? DictAny {
-                    // If existing element is a dictionary, recursively call cast()
-                    e.cast(fromDict: d)
-                    initial[key] = e
-                }
-                else if let v = value as? any Castable, let e = initial[key] as? any Castable, type(of: e).isCastable(from: v) {
-                    // If existing element and source element are castable values, cast source to destination element
-                    initial[key] = type(of: e).cast(from: v)
-                }
-                else {
-                    print("Decode: Ignoring element \(key) with value \(value)")
-                }
-            }
-            else {
-                print("Decode: Path \(key) does not exist in initial dictionary")
-            }
-        }
-    }
-    
     /// Create and initialize a new ParameterSet object from JSON data
     init(from decoder: Decoder) throws {
+        print("ParameterSet: Decoding init")
         let container = try decoder.container(keyedBy: JSONCodingKeys.self)
 
         do {
@@ -170,6 +146,45 @@ struct ParameterSet : Castable, Codable {
     
     /// Convert parameters to JSON. Return empty string on error
     var jsonString: String { return toJSON(prettyPrinted: false) }
+    
+    /// Cast dictionary elements from specified dictionary to ParameterSet value types.
+    /// Elements not existing in current ParameterSet are ignored
+    mutating func cast(fromDict: DictAny) {
+        print("Paramset.cast(fromDict:)")
+        for (key, value) in fromDict {
+            if initial.pathExists(key) {
+                if let d = value as? DictAny {
+                    if var e = initial[key] as? DictAny {
+                        // If existing element is a dictionary, cast dictionary-value to copy of existing dictionary
+                        // Assign casted copy of dictionary to initial element
+                        e.cast(fromDict: d)
+                        initial[key] = e
+                    }
+                    else if var e = initial[key] as? ParameterSet {
+                        // If existing element is a ParameterSet, cast dictionary-value to copy of existing ParameterSet
+                        // Assign casted copy of ParameterSet to initial element
+                        e.cast(fromDict: d)
+                        initial[key] = e
+                        previous[key] = e
+                        current[key] = e
+                    }
+                    else {
+                        print("Decode: Ignoring element \(key) with value \(value)")
+                    }
+                }
+                else if let v = value as? any Castable, let e = initial[key] as? any Castable, type(of: e).isCastable(from: v) {
+                    // If existing element and source element are castable values, cast source to type of destination element
+                    initial[key] = type(of: e).cast(from: v)
+                }
+                else {
+                    print("Decode: Ignoring element \(key) with value \(value)")
+                }
+            }
+            else {
+                print("Decode: Path \(key) does not exist in initial dictionary")
+            }
+        }
+    }
     
     // Convert parameters to (optionally) formatted JSON
     func toJSON(prettyPrinted: Bool = true) -> String {
@@ -225,16 +240,25 @@ struct ParameterSet : Castable, Codable {
     }
     
     /// Add parameter of a castable type to parameter set
-    mutating func addSetting<T: Castable>(_ path: String, _ setting: T) {
-        initial[path: path]  = setting
-        previous[path: path] = setting
-        current[path: path]  = setting
+    mutating func addSetting<T: Castable>(_ path: String, _ setting: T) -> Bool {
+        if !initial.pathExists(path) {
+            initial[path: path]  = setting
+            previous[path: path] = setting
+            current[path: path]  = setting
+            return true
+        }
+        return false
     }
     
-    mutating func addSetting(_ path: String, _ setting: DictAny) {
-        initial[path: path]  = setting
-        previous[path: path] = setting
-        current[path: path]  = setting
+    /// Add sub dictionary of type DictAny to parameter set
+    mutating func addSetting(_ path: String, _ setting: DictAny) -> Bool {
+        if !initial.pathExists(path) {
+            initial[path: path]  = setting
+            previous[path: path] = setting
+            current[path: path]  = setting
+            return true
+        }
+        return false
     }
     
     /// Delete parameter from parameter set

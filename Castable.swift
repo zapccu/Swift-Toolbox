@@ -1,13 +1,15 @@
 //
 //  Castable.swift
-//  Toolbox-Demo
+//
+//  Implementation of protocols Castable and CastableEnum
 //
 //  Created by Dirk Braner on 25.01.25.
 //
 
-//
-// Protocol for castable types
-//
+
+// --------------------------------------------------------
+//  Protocol for castable types
+// --------------------------------------------------------
 
 protocol Castable: Equatable, Any {
     
@@ -24,20 +26,25 @@ protocol Castable: Equatable, Any {
     
 }
 
-/// Compare two castable values
-///
-/// If types are different, value on right hand side is casted to type
-/// of left hand side value berfore comparing the values.
-/// For exact matching without casting use operator ==
-///
-func compare<L,R>(_ lhs: L, _ rhs: R) -> Bool where L: Castable, R: Castable {
-    return L.isCastable(from: rhs) ? L.cast(from: rhs) as! L == lhs : false
+
+// --------------------------------------------------------
+//  Extended protocol for castable Enum with Int raw value
+// --------------------------------------------------------
+
+protocol CastableEnum : Castable, RawRepresentable {
+    /// Return array with allowed raw values
+    static var values: [Int] { get }
+    
+    // Return array with alias names of allowed raw values
+    static var names: [String] { get }
 }
 
-//
-// Make Bool, Int, UInt, Float, Double and String conform to protocol Castable by
-// implementing defaultValue { get }, isCastable(), cast()
-//
+
+// --------------------------------------------------------
+//  Make Bool, Int, UInt, Float, Double and String conform
+//  to protocol Castable by implementing
+//  defaultValue { get }, isCastable(), cast()
+// --------------------------------------------------------
 
 extension Bool: Castable {
     
@@ -168,9 +175,47 @@ extension String: Castable {
 }
 
 
-//
-// Extend Dictionary to support Castable element values
-//
+// --------------------------------------------------------
+//  Helper functions
+// --------------------------------------------------------
+
+/// Compare two castable values
+///
+/// If types are different, value on right hand side is casted to type
+/// of left hand side value berfore comparing the values.
+/// For exact matching without casting use operator ==
+///
+func compare<L,R>(_ lhs: L, _ rhs: R) -> Bool where L: Castable, R: Castable {
+    return L.isCastable(from: rhs) ? L.cast(from: rhs) as! L == lhs : false
+}
+
+/// Check if value is castable to a CastableEnum
+func isCastableToEnum<E,T>(enumType: E.Type, from: T) -> Bool where E: CastableEnum {
+    if from is E { return true }
+    if Int.isCastable(from: from), let v = from as? any Castable {
+        return E.values.contains(Int.cast(from: v) as! Int)
+    }
+    else if E.names.count > 0, from is String {
+        return E.names.contains(from as! String)
+    }
+    return false
+}
+
+/// Cast value to a CastableEnum
+func castToEnum<E,T>(enumType: E.Type, from: T) -> E where E: CastableEnum {
+    if from is E { return from as! E }
+    if let v = from as? any Castable, Int.isCastable(from: v) {
+        return E(rawValue: Int.cast(from: v) as! E.RawValue) ?? E.defaultValue
+    }
+    else if E.names.count > 0, from is String {
+        return E(rawValue: (E.names.firstIndex(of: from as! String) ?? 0) as! E.RawValue) ?? E.defaultValue
+    }
+    return E.defaultValue
+}
+
+// --------------------------------------------------------
+//  Extend Dictionary to support Castable element values
+// --------------------------------------------------------
 
 extension Dictionary where Key == String {
     

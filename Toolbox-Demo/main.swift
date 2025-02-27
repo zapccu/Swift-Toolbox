@@ -317,7 +317,8 @@ print("\nConvert JSON string to parameterset")
 testCount += 1
 var myNewParameterset = myParameterset
 if myNewParameterset.fromJSON(psjs) {
-    print("Conversion successful")
+    print("Conversion successful. Dump of new parameterset:")
+    dump(myNewParameterset.current)
     if myNewParameterset.current == myParameterset.current {
         print("Initial and converted dictionaries are equal")
     }
@@ -410,7 +411,7 @@ test(777, "\nAdd new element 'k' = 222 to non-existing sub dictionary 'par8'") {
 }
 
 test(7.5, "\nAssign Double 7.5 to sub dictionary 'par7', new element 'w'") {
-    myParameterset.addSetting("par7.w", 0.0)
+    guard myParameterset.addSetting("par7.w", 0.0) else { return 0.0 }
     myParameterset["par7.w"] = 7.5
     print("Verifying 'par7.w'")
     let w: Double = myParameterset["par7.w", default: 0.0]
@@ -418,7 +419,7 @@ test(7.5, "\nAssign Double 7.5 to sub dictionary 'par7', new element 'w'") {
 }
 
 test(Float(9.9), "\nAssign Float 9.9 to new sub dictionary 'par4', new element 'abc'") {
-    myParameterset.addSetting("par4", ["abc": Float(0.0)])
+    guard myParameterset.addSetting("par4", ["abc": Float(0.0)]) else { return Float(0.0) }
     myParameterset["par4.abc"] = Float(9.9)
     print("Verifying 'par4.abc'")
     let abc: Float = myParameterset["par4.abc", default: Float(0.0)]
