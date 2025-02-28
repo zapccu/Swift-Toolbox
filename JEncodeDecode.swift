@@ -1,6 +1,7 @@
 //
 //  JEncodeDecode.swift
-//  Toolbox-Demo
+//
+//  Encoding / decoding of Dictionary[String: Any] and Array[Any] types
 //
 //  Created by Dirk Braner on 07.02.25.
 //
@@ -55,7 +56,6 @@ extension KeyedDecodingContainer {
         var dictionary = [String: Any]()
         
         for key in allKeys {
-            print("KeyedDecodingContainer decode \(key.stringValue)")
             if let boolValue = try? decode(Bool.self, forKey: key) {
                 dictionary[key.stringValue] = boolValue
             } else if let stringValue = try? decode(String.self, forKey: key) {
@@ -65,12 +65,12 @@ extension KeyedDecodingContainer {
             } else if let doubleValue = try? decode(Double.self, forKey: key) {
                 dictionary[key.stringValue] = doubleValue
             } else if let nestedDictionary = try? decode([String: Any].self, forKey: key) {
-                print("KeyedDecodingContainer decode nestedDictionary \(key.stringValue)")
                 dictionary[key.stringValue] = nestedDictionary
             } else if let nestedArray = try? decode([Any].self, forKey: key) {
                 dictionary[key.stringValue] = nestedArray
             }
         }
+        
         return dictionary
     }
 }
@@ -85,9 +85,8 @@ extension UnkeyedDecodingContainer {
         
         while isAtEnd == false {
             let value: String? = try decode(String?.self)
-            if value == nil {
-                continue
-            }
+            guard value != nil else { continue }
+
             if let value = try? decode(Bool.self) {
                 array.append(value)
             } else if let value = try? decode(Int.self) {
@@ -102,6 +101,7 @@ extension UnkeyedDecodingContainer {
                 array.append(nestedArray)
             }
         }
+        
         return array
     }
     
@@ -111,39 +111,30 @@ extension UnkeyedDecodingContainer {
     }
 }
 
+
+// --------------------------------------------------------
+//  Encoding
+// --------------------------------------------------------
+
 //
-// Encoding
+// Extend KeyedEncodingContainerProtocol (dictionaries)
 //
 
 extension KeyedEncodingContainerProtocol where Key == JSONCodingKeys {
     
     mutating func encode(_ value: [String: Any]) throws {
         try value.forEach({ (key, value) in
-            print("KeyedEncodingContainerProtocol JSONCodingKeys encode [String : Any], key = \(key), value = \(value), type = \(type(of: value))")
             let key = JSONCodingKeys(stringValue: key)
+
             switch value {
             case let value as any Codable:
-                print("  type = any codable")
-                try encode(value, forKey: key)
-            case let value as Bool:
-                try encode(value, forKey: key)
-            case let value as Int:
-                try encode(value, forKey: key)
-            case let value as String:
-                try encode(value, forKey: key)
-            case let value as Double:
-                try encode(value, forKey: key)
-            case let value as Float:
-                try encode(value, forKey: key)
-            case let value as [String: Any]:
-                try encode(value, forKey: key)
-            case let value as [Any]:
                 try encode(value, forKey: key)
             case Optional<Any>.none:
                 try encodeNil(forKey: key)
             default:
-                print("  encode [String : Any], type not supported")
-                throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: codingPath + [key], debugDescription: "Invalid JSON value"))
+                throw EncodingError.invalidValue(value,
+                    EncodingError.Context(codingPath: codingPath + [key],
+                        debugDescription: "Invalid JSON value type \(type(of: value))"))
             }
         })
     }
@@ -152,7 +143,6 @@ extension KeyedEncodingContainerProtocol where Key == JSONCodingKeys {
 extension KeyedEncodingContainerProtocol {
     
     mutating func encode(_ value: [String: Any]?, forKey key: Key) throws {
-        print("KeyedEncodingContainerProtocol encode [String : Any]?, type = \(type(of: value))")
         if value != nil {
             var container = self.nestedContainer(keyedBy: JSONCodingKeys.self, forKey: key)
             try container.encode(value!)
@@ -160,7 +150,6 @@ extension KeyedEncodingContainerProtocol {
     }
     
     mutating func encode(_ value: [Any]?, forKey key: Key) throws {
-        print("encode [Any]?, type = \(type(of: value))")
         if value != nil {
             var container = self.nestedUnkeyedContainer(forKey: key)
             try container.encode(value!)
@@ -168,32 +157,24 @@ extension KeyedEncodingContainerProtocol {
     }
 }
 
+//
+// Extend KeyedEncodingContainerProtocol (arrays)
+//
+
 extension UnkeyedEncodingContainer {
     
     mutating func encode(_ value: [Any]) throws {
-        print("encode [Any], type = \(type(of: value))")
         try value.enumerated().forEach({ (index, value) in
             switch value {
-            case let value as Bool:
-                try encode(value)
-            case let value as Int:
-                try encode(value)
-            case let value as String:
-                try encode(value)
-            case let value as Double:
-                try encode(value)
-            case let value as Float:
-                try encode(value)
-            case let value as [String: Any]:
-                try encode(value)
-            case let value as [Any]:
+            case let value as any Codable:
                 try encode(value)
             case Optional<Any>.none:
                 try encodeNil()
             default:
-                print("UnkeyedEncodingContainer encode [Any], type not supported")
                 let keys = JSONCodingKeys(intValue: index).map({ [ $0 ] }) ?? []
-                throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: codingPath + keys, debugDescription: "Invalid JSON value"))
+                throw EncodingError.invalidValue(value,
+                    EncodingError.Context(codingPath: codingPath + keys,
+                        debugDescription: "Invalid JSON value type \(type(of: value))"))
             }
         })
     }

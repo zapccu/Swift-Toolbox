@@ -156,16 +156,14 @@ struct ParameterSet : Castable, Codable {
                 if let d = value as? DictAny {
                     if var e = initial[key] as? DictAny {
                         // If existing element is a dictionary, cast dictionary-value to copy of existing dictionary
-                        // Assign casted copy of dictionary to initial element
+                        // Assign casted copy of dictionary to current element
                         e.cast(fromDict: d)
-                        initial[key] = e
+                        current[key] = e
                     }
                     else if var e = initial[key] as? ParameterSet {
                         // If existing element is a ParameterSet, cast dictionary-value to copy of existing ParameterSet
                         // Assign casted copy of ParameterSet to initial element
                         e.cast(fromDict: d)
-                        initial[key] = e
-                        previous[key] = e
                         current[key] = e
                     }
                     else {
@@ -174,7 +172,7 @@ struct ParameterSet : Castable, Codable {
                 }
                 else if let v = value as? any Castable, let e = initial[key] as? any Castable, type(of: e).isCastable(from: v) {
                     // If existing element and source element are castable values, cast source to type of destination element
-                    initial[key] = type(of: e).cast(from: v)
+                    current[key] = type(of: e).cast(from: v)
                 }
                 else {
                     print("Decode: Ignoring element \(key) with value \(value)")
@@ -204,9 +202,8 @@ struct ParameterSet : Castable, Codable {
         guard let data = jsonString.data(using: .utf8) else { return false }
         do {
             let newParameterset = try JSONDecoder().decode(ParameterSet.self, from: data)
-            cast(fromDict: newParameterset.initial)
             previous = current
-            current = initial
+            cast(fromDict: newParameterset.current)
             return true
         }
         catch {

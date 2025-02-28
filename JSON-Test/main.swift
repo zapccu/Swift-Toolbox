@@ -15,7 +15,7 @@ print("\n*** Demo / Test of JSON conversion of ParameterSet ***\n")
 var myParameterset = ParameterSet([
     "par1": Int(100),
     "par2": ParameterSet([
-        "sx": 1,
+        "sx": 1.0,
         "sy": 0.2,
         "sz": 3
     ])
@@ -37,13 +37,15 @@ print("\nConvert JSON string to parameterset")
 var myNewParameterset = myParameterset
 let jsstr = psjs.replacingOccurrences(of: "0.2", with: "0.8")
 if myNewParameterset.fromJSON(jsstr) {
-    print("\nConversion successful. Dump of new parameterset:")
+    print("\nConversion successful. Dump of new parameterset current:")
     dump(myNewParameterset.current)
+    print("\nDump of new parameterset previous:")
+    dump(myNewParameterset.previous)
     if myNewParameterset.current == myParameterset.current {
         print("Initial and converted dictionaries are equal")
     }
     else {
-        print("ERR: Initial and converted dictionaries are not equal")
+        print("Initial and converted dictionaries are not equal")
     }
 }
 else {
