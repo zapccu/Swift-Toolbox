@@ -302,36 +302,6 @@ var myParameterset = ParameterSet([
 print("Initial dictionary before parameterset tests:")
 dump(myParameterset.current)
 
-print("\nConvert parameterset to JSON string")
-testCount += 1
-let psjs = myParameterset.jsonString
-if psjs != "" {
-    print("Parameterset as JSON:\n\(psjs)")
-}
-else {
-    errorCount += 1
-    print("ERR: Conversion failed")
-}
-
-print("\nConvert JSON string to parameterset")
-testCount += 1
-var myNewParameterset = myParameterset
-if myNewParameterset.fromJSON(psjs) {
-    print("Conversion successful. Dump of new parameterset:")
-    dump(myNewParameterset.current)
-    if myNewParameterset.current == myParameterset.current {
-        print("Initial and converted dictionaries are equal")
-    }
-    else {
-        errorCount += 1
-        print("ERR: Initial and converted dictionaries are not equal")
-    }
-}
-else {
-    errorCount += 1
-    print("Conversion failed")
-}
-
 test(200, "\nAccess non existing element 'par0' with default Int = 200") {
     let par0 = myParameterset["par0", default: 200]
     return par0

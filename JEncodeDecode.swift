@@ -129,6 +129,10 @@ extension KeyedEncodingContainerProtocol where Key == JSONCodingKeys {
             switch value {
             case let value as any Codable:
                 try encode(value, forKey: key)
+            case let value as [String: Any]:
+                try encode(value, forKey: key)
+            case let value as [Any]:
+                try encode(value, forKey: key)
             case Optional<Any>.none:
                 try encodeNil(forKey: key)
             default:
@@ -167,6 +171,10 @@ extension UnkeyedEncodingContainer {
         try value.enumerated().forEach({ (index, value) in
             switch value {
             case let value as any Codable:
+                try encode(value)
+            case let value as [String: Any]:
+                try encode(value)
+            case let value as [Any]:
                 try encode(value)
             case Optional<Any>.none:
                 try encodeNil()

@@ -52,4 +52,48 @@ else {
     print("Conversion failed")
 }
 
+// Define 2nd parameter set
+var myParameterset2 = ParameterSet([
+    "par1": Int(100),
+    "par2": 100.0,
+    "par3": "Hello World",
+    "par5": ParameterSet([
+        "sx": 1,
+        "sy": 0.2,
+        "sz": 3
+    ]),
+    "par6": "1000.5",
+    "par7": [
+        "x": 1.5,
+        "y": Float(3.8),
+        "z": "Test"
+    ],
+    "par9": DrawMode.solid,
+    "par10": Orientation.landscapeRight.rawValue
+])
+
+print("\nConvert parameterset to JSON string")
+let psjs2 = myParameterset2.jsonString
+if psjs2 != "" {
+    print("Parameterset as JSON:\n\(psjs2)")
+}
+else {
+    print("ERR: Conversion failed")
+}
+
+print("\nConvert JSON string to parameterset")
+var myNewParameterset2 = myParameterset2
+if myNewParameterset2.fromJSON(psjs2) {
+    print("Conversion successful. Dump of new parameterset:")
+    dump(myNewParameterset2.current)
+    if myNewParameterset2.current == myParameterset2.current {
+        print("Initial and converted dictionaries are equal")
+    }
+    else {
+        print("ERR: Initial and converted dictionaries are not equal")
+    }
+}
+else {
+    print("Conversion failed")
+}
 

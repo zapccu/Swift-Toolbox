@@ -116,17 +116,10 @@ struct ParameterSet : Castable, Codable {
     
     /// Create and initialize a new ParameterSet object from JSON data
     init(from decoder: Decoder) throws {
-        print("ParameterSet: Decoding init")
         let container = try decoder.container(keyedBy: JSONCodingKeys.self)
-
-        do {
-            initial = try container.decode(DictAny.self)
-            current = initial
-            previous = initial
-        }
-        catch {
-            print("Decoding error: \(error)")
-        }
+        initial = try container.decode(DictAny.self)
+        current = initial
+        previous = initial
     }
     
     /// Encode to JSON data
@@ -150,7 +143,6 @@ struct ParameterSet : Castable, Codable {
     /// Cast dictionary elements from specified dictionary to ParameterSet value types.
     /// Elements not existing in current ParameterSet are ignored
     mutating func cast(fromDict: DictAny) {
-        print("Paramset.cast(fromDict:)")
         for (key, value) in fromDict {
             if initial.pathExists(key) {
                 if let d = value as? DictAny {
@@ -167,7 +159,7 @@ struct ParameterSet : Castable, Codable {
                         current[key] = e
                     }
                     else {
-                        print("Decode: Ignoring element \(key) with value \(value)")
+                        // print("Decode: Ignoring element \(key) with value \(value)")
                     }
                 }
                 else if let v = value as? any Castable, let e = initial[key] as? any Castable, type(of: e).isCastable(from: v) {
@@ -175,11 +167,11 @@ struct ParameterSet : Castable, Codable {
                     current[key] = type(of: e).cast(from: v)
                 }
                 else {
-                    print("Decode: Ignoring element \(key) with value \(value)")
+                    // print("Decode: Ignoring element \(key) with value \(value)")
                 }
             }
             else {
-                print("Decode: Path \(key) does not exist in initial dictionary")
+                // print("Decode: Path \(key) does not exist in initial dictionary")
             }
         }
     }
@@ -193,6 +185,7 @@ struct ParameterSet : Castable, Codable {
             return String(data: s, encoding: .utf8) ?? ""
         }
         catch {
+            print(error)
             return ""
         }
     }
@@ -207,6 +200,7 @@ struct ParameterSet : Castable, Codable {
             return true
         }
         catch {
+            print(error)
             return false
         }
     }
@@ -219,14 +213,11 @@ struct ParameterSet : Castable, Codable {
     }
     
     /// Initialize parameter set with JSON string
-    init(_ jsonString: String) {
-        guard let data = jsonString.data(using: .utf8) else { return }
-        do {
-            self = try JSONDecoder().decode(ParameterSet.self, from: data)
+    init(_ jsonString: String) throws {
+        guard let data = jsonString.data(using: .utf8) else {
+            throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: [], debugDescription: "Invalid JSON string"))
         }
-        catch {
-            return
-        }
+        self = try JSONDecoder().decode(ParameterSet.self, from: data)
     }
     
     /// Add dictionary of type DictPar with new settings to parameter set
