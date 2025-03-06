@@ -58,16 +58,34 @@ extension KeyedDecodingContainer {
         for key in allKeys {
             if let boolValue = try? decode(Bool.self, forKey: key) {
                 dictionary[key.stringValue] = boolValue
-            } else if let stringValue = try? decode(String.self, forKey: key) {
+            }
+            else if let stringValue = try? decode(String.self, forKey: key) {
                 dictionary[key.stringValue] = stringValue
-            } else if let intValue = try? decode(Int.self, forKey: key) {
+            }
+            else if let intValue = try? decode(Int.self, forKey: key) {
                 dictionary[key.stringValue] = intValue
-            } else if let doubleValue = try? decode(Double.self, forKey: key) {
+            }
+            else if let doubleValue = try? decode(Double.self, forKey: key) {
                 dictionary[key.stringValue] = doubleValue
-            } else if let nestedDictionary = try? decode([String: Any].self, forKey: key) {
+            }
+            else if let nestedDictionary = try? decode([String: Any].self, forKey: key) {
                 dictionary[key.stringValue] = nestedDictionary
-            } else if let nestedArray = try? decode([Any].self, forKey: key) {
+            }
+            else if let nestedArray = try? decode([Any].self, forKey: key) {
                 dictionary[key.stringValue] = nestedArray
+            }
+            else if let intArray = try? decode([Int].self, forKey: key) {
+                dictionary[key.stringValue] = intArray
+            }
+            else if let doubleArray = try? decode([Double].self, forKey: key) {
+                dictionary[key.stringValue] = doubleArray
+            }
+            else if let stringArray = try? decode([String].self, forKey: key) {
+                dictionary[key.stringValue] = stringArray
+            }
+            else {
+                print("KeyedDecodingContainer.decode: Unsupported JSON type for key \(key)")
+                throw DecodingError.typeMismatch(type, DecodingError.Context(codingPath: self.codingPath, debugDescription: "Unsupported JSON type found for \(key)"))
             }
         }
         
@@ -89,16 +107,25 @@ extension UnkeyedDecodingContainer {
 
             if let value = try? decode(Bool.self) {
                 array.append(value)
-            } else if let value = try? decode(Int.self) {
+            }
+            else if let value = try? decode(Int.self) {
                 array.append(value)
-            } else if let value = try? decode(Double.self) {
+            }
+            else if let value = try? decode(Double.self) {
                 array.append(value)
-            } else if let value = try? decode(String.self) {
+            }
+            else if let value = try? decode(String.self) {
                 array.append(value)
-            } else if let nestedDictionary = try? decode([String: Any].self) {
+            }
+            else if let nestedDictionary = try? decode([String: Any].self) {
                 array.append(nestedDictionary)
-            } else if let nestedArray = try? decode([Any].self) {
+            }
+            else if let nestedArray = try? decode([Any].self) {
                 array.append(nestedArray)
+            }
+            else {
+                print ("WARNING: UnkeyedDecodingContainer.decode: Unsupported JSON type found")
+                throw DecodingError.typeMismatch(type, DecodingError.Context(codingPath: self.codingPath, debugDescription: "Unsupported JSON type found"))
             }
         }
         

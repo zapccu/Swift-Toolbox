@@ -12,13 +12,15 @@ print("************************************************************")
 print("\n*** Demo / Test of JSON conversion of ParameterSet ***\n")
 
 // Define parameter set
+var arrPar3: [Any] = [444, 555, 666]
 var myParameterset = ParameterSet([
     "par1": Int(100),
     "par2": ParameterSet([
         "sx": 1.0,
         "sy": 0.2,
         "sz": 3
-    ])
+    ]),
+    "par3": arrPar3
 ])
 
 print("Initial dictionary before JSON test:")
@@ -35,8 +37,10 @@ else {
 
 print("\nConvert JSON string to parameterset")
 var myNewParameterset = myParameterset
-let jsstr = psjs.replacingOccurrences(of: "0.2", with: "0.8")
-if myNewParameterset.fromJSON(jsstr) {
+let jsstr1 = psjs.replacingOccurrences(of: "0.2", with: "0.8")
+let jsstr2 = jsstr1.replacingOccurrences(of: "666", with: "777")
+print("New JSON: \(jsstr2)")
+if myNewParameterset.fromJSON(jsstr2) {
     print("\nConversion successful. Dump of new parameterset current:")
     dump(myNewParameterset.current)
     print("\nDump of new parameterset previous:")
@@ -52,7 +56,7 @@ else {
     print("Conversion failed")
 }
 
-// Define 2nd parameter set
+// Define 2nd parameter set with custom types
 var myParameterset2 = ParameterSet([
     "par1": Int(100),
     "par2": 100.0,
@@ -72,10 +76,10 @@ var myParameterset2 = ParameterSet([
     "par10": Orientation.landscapeRight.rawValue
 ])
 
-print("\nConvert parameterset to JSON string")
+print("\nConvert 2nd parameterset to JSON string")
 let psjs2 = myParameterset2.jsonString
 if psjs2 != "" {
-    print("Parameterset as JSON:\n\(psjs2)")
+    print("2nd Parameterset as JSON:\n\(psjs2)")
 }
 else {
     print("ERR: Conversion failed")

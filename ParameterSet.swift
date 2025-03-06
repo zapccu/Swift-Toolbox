@@ -8,9 +8,7 @@
 //  Created by Dirk Braner on 24.11.24.
 //
 
-
 import Foundation
-
 
 
 //
@@ -158,8 +156,14 @@ struct ParameterSet : Castable, Codable {
                         e.cast(fromDict: d)
                         current[key] = e
                     }
+                    else if var e = initial[key] as? [Any] {
+                        print("Found array Any \(key)")
+                    }
+                    else if var e = initial[key] as? [AnyObject] {
+                        print("Found array as AnyObject \(key)")
+                    }
                     else {
-                        // print("Decode: Ignoring element \(key) with value \(value)")
+                        print("Decode: Ignoring element \(key) with value \(value)")
                     }
                 }
                 else if let v = value as? any Castable, let e = initial[key] as? any Castable, type(of: e).isCastable(from: v) {
@@ -167,11 +171,11 @@ struct ParameterSet : Castable, Codable {
                     current[key] = type(of: e).cast(from: v)
                 }
                 else {
-                    // print("Decode: Ignoring element \(key) with value \(value)")
+                    print("Decode: Ignoring element \(key) with value \(value)")
                 }
             }
             else {
-                // print("Decode: Path \(key) does not exist in initial dictionary")
+                print("Decode: Path \(key) does not exist in initial dictionary")
             }
         }
     }
