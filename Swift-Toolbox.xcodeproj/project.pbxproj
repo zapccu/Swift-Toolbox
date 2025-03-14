@@ -16,6 +16,7 @@
 		434458892D79CC930052F820 /* DictionaryPath.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43123F662CF3298F009BFB34 /* DictionaryPath.swift */; };
 		4344588A2D79CC930052F820 /* Castable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43EAB1632D4543010051E352 /* Castable.swift */; };
 		4344588B2D79CC930052F820 /* ParameterSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43B4D1AD2CF32F1900DBD934 /* ParameterSet.swift */; };
+		4344588E2D79D8180052F820 /* JEncodeDecode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43D7B01D2D5667040081FED2 /* JEncodeDecode.swift */; };
 		43D7B01E2D5667040081FED2 /* JEncodeDecode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43D7B01D2D5667040081FED2 /* JEncodeDecode.swift */; };
 		43EAB1612D4537EC0051E352 /* DictionaryPath.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43123F662CF3298F009BFB34 /* DictionaryPath.swift */; };
 		43EAB1622D4537F30051E352 /* ParameterSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43B4D1AD2CF32F1900DBD934 /* ParameterSet.swift */; };
@@ -79,9 +80,9 @@
 			path = "JSON-Test";
 			sourceTree = "<group>";
 		};
-		434458762D79CB3B0052F820 /* DictAny-Test */ = {
+		434458762D79CB3B0052F820 /* DictAnyPath-Test */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "DictAny-Test";
+			path = "DictAnyPath-Test";
 			sourceTree = "<group>";
 		};
 		434458832D79CC2B0052F820 /* ParameterSet-Test */ = {
@@ -138,7 +139,7 @@
 				43D7B01D2D5667040081FED2 /* JEncodeDecode.swift */,
 				43EAB15B2D45379F0051E352 /* Castable-Test */,
 				431209C02D6DF46A000A3C0D /* JSON-Test */,
-				434458762D79CB3B0052F820 /* DictAny-Test */,
+				434458762D79CB3B0052F820 /* DictAnyPath-Test */,
 				434458832D79CC2B0052F820 /* ParameterSet-Test */,
 				43EAB15A2D45379F0051E352 /* Products */,
 			);
@@ -193,7 +194,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				434458762D79CB3B0052F820 /* DictAny-Test */,
+				434458762D79CB3B0052F820 /* DictAnyPath-Test */,
 			);
 			name = "DictAny-Test";
 			packageProductDependencies = (
@@ -317,6 +318,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4344588E2D79D8180052F820 /* JEncodeDecode.swift in Sources */,
 				434458892D79CC930052F820 /* DictionaryPath.swift in Sources */,
 				4344588A2D79CC930052F820 /* Castable.swift in Sources */,
 				4344588B2D79CC930052F820 /* ParameterSet.swift in Sources */,

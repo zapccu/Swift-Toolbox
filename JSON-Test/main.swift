@@ -11,8 +11,13 @@ import Foundation
 print("************************************************************")
 print("\n*** Demo / Test of JSON conversion of ParameterSet ***\n")
 
-// Define parameter set
-var arrPar3: [Any] = [444, 555, 666]
+// Array of type [Int]
+var arrPar3: [Int] = [444, 555, 666]
+
+// Array of type [Any]
+var arrPar4: [Any] = [444, 555.5, "666"]
+
+// Define a parameter set
 var myParameterset = ParameterSet([
     "par1": Int(100),
     "par2": ParameterSet([
@@ -20,26 +25,27 @@ var myParameterset = ParameterSet([
         "sy": 0.2,
         "sz": 3
     ]),
-    "par3": arrPar3
+    "par3": arrPar3,
+    "par4": arrPar4
 ])
 
-print("Initial dictionary before JSON test:")
+print("Initial dictionary before JSON tests:")
 dump(myParameterset.current)
 
 print("\nConvert parameterset to JSON string")
 let psjs = myParameterset.jsonString
 if psjs != "" {
-    print("Parameterset as JSON:\n\(psjs)")
+    print("Old JSON: \(psjs)")
 }
 else {
     print("ERR: Conversion failed")
 }
 
-print("\nConvert JSON string to parameterset")
 var myNewParameterset = myParameterset
 let jsstr1 = psjs.replacingOccurrences(of: "0.2", with: "0.8")
 let jsstr2 = jsstr1.replacingOccurrences(of: "666", with: "777")
 print("New JSON: \(jsstr2)")
+print("\nConvert JSON string to parameterset")
 if myNewParameterset.fromJSON(jsstr2) {
     print("\nConversion successful. Dump of new parameterset current:")
     dump(myNewParameterset.current)

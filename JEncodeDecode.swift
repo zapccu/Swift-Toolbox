@@ -102,8 +102,8 @@ extension UnkeyedDecodingContainer {
         var array: [Any] = []
         
         while isAtEnd == false {
-            let value: String? = try decode(String?.self)
-            guard value != nil else { continue }
+            // let value: String? = try decode(String?.self)
+            // guard value != nil else { continue }
 
             if let value = try? decode(Bool.self) {
                 array.append(value)

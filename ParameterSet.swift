@@ -163,15 +163,19 @@ struct ParameterSet : Castable, Codable {
                         print("Found array as AnyObject \(key)")
                     }
                     else {
-                        print("Decode: Ignoring element \(key) with value \(value)")
+                        print("Decode: Ignoring element \(key) with value \(value) type \(type(of: value))")
                     }
+                }
+                else if let a = value as? [Any], var e = initial[key] as? [Any] {
+                    e.cast(fromArray: a)
+                    current[key] = e
                 }
                 else if let v = value as? any Castable, let e = initial[key] as? any Castable, type(of: e).isCastable(from: v) {
                     // If existing element and source element are castable values, cast source to type of destination element
                     current[key] = type(of: e).cast(from: v)
                 }
                 else {
-                    print("Decode: Ignoring element \(key) with value \(value)")
+                    print("Decode: Ignoring element \(key) with value \(value) type \(type(of: value)) expected type \(String(describing: type(of: initial[key]!)))\n")
                 }
             }
             else {

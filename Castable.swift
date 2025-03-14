@@ -361,3 +361,21 @@ extension Dictionary where Key == String {
     }
     
 }
+
+
+// --------------------------------------------------------
+//  Extend Array to support Castable element values
+// --------------------------------------------------------
+
+extension Array where Element: Any {
+    
+    mutating func cast(fromArray: [Any]) {
+        guard fromArray.count == self.count else { return }
+
+        for i in 0..<self.count {
+            if let e = self[i] as? any Castable, let v = fromArray[i] as? any Castable, type(of: e).isCastable(from: v) {
+                self[i] = type(of: e).cast(from: v) as! Element
+            }
+        }
+    }
+}
