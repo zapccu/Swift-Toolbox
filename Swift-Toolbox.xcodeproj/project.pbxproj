@@ -70,6 +70,7 @@
 		434458822D79CC2B0052F820 /* ParameterSet-Test */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "ParameterSet-Test"; sourceTree = BUILT_PRODUCTS_DIR; };
 		43B4D1AD2CF32F1900DBD934 /* ParameterSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParameterSet.swift; sourceTree = "<group>"; };
 		43D7B01D2D5667040081FED2 /* JEncodeDecode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JEncodeDecode.swift; sourceTree = "<group>"; };
+		43E712682D84585E00FBF219 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		43EAB1592D45379F0051E352 /* Toolbox-Demo */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "Toolbox-Demo"; sourceTree = BUILT_PRODUCTS_DIR; };
 		43EAB1632D4543010051E352 /* Castable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Castable.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -132,6 +133,7 @@
 		43123F5F2CF3297C009BFB34 = {
 			isa = PBXGroup;
 			children = (
+				43E712682D84585E00FBF219 /* README.md */,
 				3F16704C2D4512AC0025DE40 /* .gitignore */,
 				43123F662CF3298F009BFB34 /* DictionaryPath.swift */,
 				43EAB1632D4543010051E352 /* Castable.swift */,
