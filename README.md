@@ -1,12 +1,13 @@
 
 # Swift Dictionary and ParameterSet Toolbox
-
+---
 ## DictionaryPath
 
 ### Purpose
 
-Extends a dictionary of type [String: Any] by path string addressing of sub-dictionaries.
+Extends a dictionary of type [String: Any] by addressing sub-dictionaries by path strings.
 A path string contains multiple string segments separated by a '.'. Each segment addresses a dictionary level.
+For an easier definition of dictionaries a type alias _DictAny_ is defined as a shortcut to [String: Any].
 
 ### Example
 
@@ -45,13 +46,72 @@ More examples can be found in project target "DictAnyPath-Test".
 
 The operator == is overloaded to compare two dictionaries of type [String: Any].
 
-
-## Castable
+---
+## Castable and CastableEnum
 
 ### Purpose
 
-Defines protocol Castable and make types Int, UInt, Float, Double and String conform to this protocol.
-The protocol defines functions for casting values between castable types.
+Defines protocols _Castable_ and _CastableEnum_ and make types Int, UInt, Float, Double and String conform to Castable.
+The protocols _Castable_ and _CastableEnum_ define functions for casting values between castable types.
+
+### Functions in protocol Castable
+
+Protocol _Castable_ derives from _Equatable_ and _Any_.
+
+`static func isCastable<T>(from: T) -> Bool`
+
+Check if value _from_ is castable to current type.
+
+`static func cast<T>(from: T) -> any Castable where T: Castable`
+
+Cast value _from_ to current type.
+
+`static var defaultValue: Self { get }`
+
+Return default value of castable type.
+
+### Properties in protocol CastableEnum
+
+Protocol _CastableEnum_ derives from _Castable_ and _RawRepresentable_.
+
+`static var values: [Int] { get }`
+
+Return array with raw values allowed by enum type.
+
+`static var names: [String] { get }`
+
+Return array with alias names for raw values allowed by enum type.
+
+### Helper functions
+
+`func compare<L,R>(_ lhs: L, _ rhs: R) -> Bool where L: Castable, R: Castable`
+
+Compare two values of castable types. If types are different, _rhs_ is casted to _lhs_ before comparision.
+
+`func isCastableToEnum<E,T>(enumType: E.Type, from: T) -> Bool where E: CastableEnum`
+
+Check if value _from_ is castable to a castable Enum type.
+
+`func castToEnum<E,T>(enumType: E.Type, from: T) -> E where E: CastableEnum`
+
+Cast value _from_ to a castable Enum type.
+
+### Extension of Dictionary for Castable and path addressing support
+
+`func delete(_ path: String)`
+
+Delete a dictionary entry (either sub-dictionary or element).
+
+`func cast(fromDict: DictAny)`
+
+Cast and assign dictionary _fromDict_ to current dictionary entry types. Elements which doesn't exist in 
+current dictionary are added to current dictionary.
+
+### Extension of Array for Castable support
+
+`func cast(fromArray: [Any])`
+
+Cast and assign array _fromArray_ to current array entry types.
 
 ### Example
 

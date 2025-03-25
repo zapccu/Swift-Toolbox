@@ -13,15 +13,15 @@
 
 protocol Castable: Equatable, Any {
     
-    /// Check if value of type T is castable to current value
-    /// Example: Int.isCastable(5.0)
+    /// Check if value of type T is castable to current value type
+    /// Example: Int.isCastable(from: 5.0)
     static func isCastable<T>(from: T) -> Bool
 
     /// Cast a numeric value from type T to a type conform to protocol Castable
     /// If casting is not possible, defaultValue must be returned.
     static func cast<T>(from: T) -> (any Castable) where T: Castable
     
-    /// Value to be returned if a value is not castable. Usually zero
+    /// Value to be returned if a value is not castable. A numeric type should return zero.
     static var defaultValue: Self { get }
     
 }
@@ -32,11 +32,13 @@ protocol Castable: Equatable, Any {
 // --------------------------------------------------------
 
 protocol CastableEnum : Castable, RawRepresentable {
+    
     /// Return array with allowed raw values
     static var values: [Int] { get }
     
     // Return array with alias names of allowed raw values
     static var names: [String] { get }
+    
 }
 
 
@@ -182,7 +184,7 @@ extension String: Castable {
 /// Compare two castable values
 ///
 /// If types are different, value on right hand side is casted to type
-/// of left hand side value berfore comparing the values.
+/// of left hand side value before comparing the values.
 /// For exact matching without casting use operator ==
 ///
 func compare<L,R>(_ lhs: L, _ rhs: R) -> Bool where L: Castable, R: Castable {
@@ -213,23 +215,12 @@ func castToEnum<E,T>(enumType: E.Type, from: T) -> E where E: CastableEnum {
     return E.defaultValue
 }
 
+
 // --------------------------------------------------------
 //  Extend Dictionary to support Castable element values
 // --------------------------------------------------------
 
 extension Dictionary where Key == String {
-    
-    /*
-    /// Get castable value
-    func getValue<T>(path: String, default def: T) -> T where T: Castable {
-        return self[path: path, default: def]
-    }
-    
-    /// Set castable value
-    mutating func setValue<T>(path: String, _ value: T) where T: Castable {
-        self[path: path] = value
-    }
-    */
     
     /// Delete a dictionary element
     mutating func delete(_ path: String) {
